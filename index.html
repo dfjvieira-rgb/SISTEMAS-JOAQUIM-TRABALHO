@@ -15,19 +15,16 @@
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         
         header { background-color: var(--primary); color: white; height: var(--header-h); padding: 0 15px; display: flex; justify-content: space-between; align-items: center; z-index: 1000; }
-        /* Cronômetro removido */
         
+        /* Ajuste para agrupar botões na esquerda */
+        .header-left { display: flex; align-items: center; gap: 10px; } 
+
         .nav-group { display: flex; gap: 5px; }
         .dropbtn { color: white; padding: 8px 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.65rem; text-transform: uppercase; }
-        .btn-struct { background-color: var(--accent); }
-        .btn-correc { background-color: var(--orange); }
         .btn-postit { background-color: var(--yellow); color: #333; }
         .btn-dicas { background-color: var(--purple); }
 
-        .dropdown { position: relative; }
-        .dropdown-content { display: none; position: absolute; background: white; min-width: 250px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); right: 0; border-radius: 6px; padding: 8px; z-index: 2000; border: 1px solid #ddd; }
-        .dropdown:hover .dropdown-content { display: block; }
-        .menu-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; font-size: 0.8rem; color: #333; cursor: pointer; }
+        .dropdown-content { display: none; } 
 
         main { display: flex; flex: 1; overflow: hidden; position: relative; }
         
@@ -45,7 +42,6 @@
         #area-peca { flex: 1; padding: 25px; border: none; font-family: 'Courier New', monospace; font-size: 16px; line-height: 1.6; outline: none; background-image: linear-gradient(#f1f1f1 1px, transparent 1px); background-size: 100% 1.6em; resize: none; }
         #resizer { width: 10px; background: #cbd5e0; cursor: col-resize; z-index: 10; border-left: 1px solid #a0aec0; }
 
-        /* Nova área de anotações */
         .annotations-section { flex: 1; background: #525659; display: flex; flex-direction: column; gap: 10px; padding: 10px; overflow-y: auto; }
         .annotation-box { background: #fff; border-radius: 4px; overflow: hidden; flex: 1; display: flex; flex-direction: column; }
         .annotation-header { padding: 6px 10px; color: white; font-size: 0.7rem; display: flex; justify-content: space-between; background: #2c3e50; }
@@ -54,7 +50,6 @@
         
         #btn-reopen { position: fixed; left: 0; top: 80px; background: var(--primary); color: white; border: none; padding: 10px; border-radius: 0 5px 5px 0; cursor: pointer; display: none; z-index: 900; }
 
-        /* Estilos de anotação */
         .note-item { padding: 8px; border-radius: 4px; margin-bottom: 8px; font-size: 0.75rem; position: relative; }
         .note-delete { position: absolute; right: 5px; top: 5px; background: none; border: none; color: red; cursor: pointer; }
         .type-postit { background: var(--yellow); }
@@ -77,16 +72,15 @@
 <body>
 
 <header>
+    <!-- Tudo movido para header-left -->
     <div class="header-left">
         <button id="mobile-toggle" style="background:#34495e; color:white; border:none; padding:8px; border-radius:4px; display:none;" onclick="toggleSidebarMobile()">☰ MENU</button>
-        <!-- <div id="timer">05:00:00</div> REMOVIDO -->
-    </div>
-    <div class="nav-group">
-        <div class="dropdown"><button class="dropbtn btn-struct">📑 Estruturas</button><div class="dropdown-content" id="list-db_estruturas"></div></div>
-        <div class="dropdown"><button class="dropbtn btn-correc">⚖️ Correção</button><div class="dropdown-content" id="list-db_correcoes"></div></div>
-        <!-- Botões do menu superior agora abrem/focam os painéis inferiores -->
+        <!-- Botões de navegação movidos para a esquerda -->
         <button class="dropbtn btn-postit" onclick="focusPanel('postit')">📌 Post-its</button>
         <button class="dropbtn btn-dicas" onclick="focusPanel('dicas')">👩‍🏫 Dicas</button>
+    </div>
+    <!-- nav-group agora pode ficar vazio ou ser removido se não houver mais nada na direita -->
+    <div class="nav-group">
     </div>
 </header>
 
@@ -126,10 +120,8 @@
 
     <div id="resizer"></div>
 
-    <!-- Áreas de Anotação Fixas -->
     <section class="annotations-section" id="right-panel">
         
-        <!-- Painel de Post-its (Antigo Enunciado) -->
         <div class="annotation-box">
             <div class="annotation-header">
                 <span>📌 POST-ITS (FOLHA DE CADERNO)</span>
@@ -140,7 +132,6 @@
             </div>
         </div>
 
-        <!-- Painel de Dicas (Antigo Padrão de Resposta) -->
         <div class="annotation-box">
             <div class="annotation-header">
                 <span>👩‍🏫 DICAS (PADRÃO RESPOSTA)</span>
@@ -172,7 +163,6 @@
     function salvarAlteracoes() { alert("Alterações Salvas (Mock)"); }
     function cancelarEdicao() { alert("Edição Cancelada (Mock)"); }
     function exportarTXT() { alert("Exportando para TXT (Mock)"); }
-    // A função expandir não é mais necessária, pois usamos áreas de anotação fixas.
 
     window.onload = () => {
        renderAnnotations('postit'); 
@@ -183,10 +173,6 @@
     // JS: Funcionalidade de Anotações em Painéis Fixos
     // ------------------------------------------------------------------
 
-    /**
-     * Pede ao usuário uma nova anotação e salva.
-     * @param {string} type O tipo de anotação ('postit' ou 'dicas').
-     */
     function addNewNotePrompt(type) {
         const text = prompt(`Digite sua nova anotação (${type}):`);
         if (text && text.trim() !== '') {
@@ -194,11 +180,6 @@
         }
     }
 
-    /**
-     * Salva uma nova anotação no LocalStorage.
-     * @param {string} type O tipo de anotação.
-     * @param {string} text O conteúdo da anotação.
-     */
     function saveAnnotation(type, text) {
         const STORAGE_KEY = `sistemaJoaquimNotes_${type}`;
         let annotations = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
@@ -214,10 +195,6 @@
         renderAnnotations(type);
     }
 
-    /**
-     * Renderiza as anotações salvas na interface para um tipo específico.
-     * @param {string} type O tipo de anotação.
-     */
     function renderAnnotations(type) {
         const STORAGE_KEY = `sistemaJoaquimNotes_${type}`;
         const annotations = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
@@ -237,11 +214,6 @@
         });
     }
 
-    /**
-     * Remove uma anotação específica pelo ID e tipo.
-     * @param {string} type O tipo de anotação.
-     * @param {number} id O ID da anotação a ser removida.
-     */
     function deleteAnnotation(type, id) {
         const STORAGE_KEY = `sistemaJoaquimNotes_${type}`;
         let annotations = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
@@ -250,14 +222,10 @@
         renderAnnotations(type); 
     }
 
-    /**
-     * Função para focar visualmente o painel quando clicado no menu superior.
-     */
     function focusPanel(type) {
         const panelId = type === 'postit' ? 'content-postit' : 'content-dicas';
         const panel = document.getElementById(panelId);
         panel.scrollIntoView({ behavior: 'smooth' });
-        // Adicione um efeito visual temporário se desejar, como um highlight.
     }
 </script>
 </body>
