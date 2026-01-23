@@ -75,12 +75,15 @@
         
         .editor-actions { display: flex; gap: 5px; }
         
-        /* Estilos da agenda no painel de dicas */
-        .agenda-task { display: flex; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 8px; background: white; border-radius: 4px; box-shadow: 1px 1px 3px rgba(0,0,0,0.1); }
-        .agenda-task-text { flex-grow: 1; font-size: 0.8rem; cursor: pointer; padding-right: 10px; }
-        .agenda-task-input { display: none; width: calc(100% - 70px); border: 1px solid var(--accent); padding: 2px; }
-        .agenda-task-actions { display: flex; gap: 5px; }
-        .agenda-task-actions button { font-size: 0.7rem; padding: 4px 8px; }
+        /* Estilos da agenda */
+        .agenda-task { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #ddd; cursor: pointer; }
+        .agenda-task-text { width: calc(100% - 30px); font-size: 0.8rem; }
+        .agenda-task-input { display: none; width: calc(100% - 30px); border: 1px solid var(--accent); padding: 2px; }
+        .agenda-task button { background: none; border: none; cursor: pointer; color: var(--green); }
+
+        /* Edição de Título de Acordo */
+        #agreement-title-text { cursor: pointer; }
+        #agreement-title-input { display: none; font-size: 0.7rem; padding: 5px; border-radius: 4px; border: 1px solid var(--accent); width: 200px; }
 
 
         @media (max-width: 1024px) {
@@ -101,7 +104,7 @@
     <div class="header-left">
         <button id="mobile-toggle" style="background:#34495e; color:white; border:none; padding:8px; border-radius:4px; display:none;" onclick="toggleSidebarMobile()">☰ MENU</button>
         <button class="dropbtn btn-postit" onclick="focusPanel('postit')">📌 Post-its</button>
-        <button class="dropbtn btn-dicas" onclick="focusPanel('dicas')">👩‍🏫 Dicas/Agenda</button>
+        <button class="dropbtn btn-dicas" onclick="focusPanel('dicas')">👩‍🏫 Dicas</button>
     </div>
     <div class="nav-group">
         <span id="business-days-counter"></span>
@@ -126,6 +129,17 @@
             <h4 style="margin-top:15px">💡 MURAL RÁPIDO</h4>
             <div id="mural-fixacao"></div>
 
+            <h4 style="margin-top:15px">📅 AGENDA DIÁRIA DO GERENTE</h4>
+            <div id="manager-agenda-list">
+                <!-- Tarefas aqui -->
+            </div>
+            <div style="display: flex; gap: 5px; margin-top: 8px;">
+                <input type="text" id="new-task-input" placeholder="Nova tarefa..." style="flex: 1; padding: 5px; border-radius: 4px; border: 1px solid #ccc;">
+                <button class="btn-action" style="background: var(--accent);" onclick="addTask()">ADD</button>
+            </div>
+            <!-- Fim Nova Seção da Agenda -->
+
+
             <h4 style="margin-top:15px">💾 DADOS</h4>
             <button class="btn-action" style="background:#27ae60; width:100%" onclick="fazerBackup()">EXPORTAR</button>
             <button class="btn-action" style="background:#2980b9; width:100%; margin-top:5px" onclick="document.getElementById('input-file').click()">IMPORTAR</button>
@@ -141,7 +155,16 @@
         </div>
         
         <div class="editor-header" style="padding:10px; display:flex; justify-content:space-between; align-items:center; background:#eee;">
-            <span id="label-exame" style="font-size:0.7rem; font-weight:bold;">📍 NENHUM ACORDO SELECIONADO</span>
+            <!-- Área do Título Editável -->
+            <span id="label-exame" style="font-size:0.7rem; font-weight:bold;">
+                <span id="agreement-title-prefix">📍</span>
+                <span id="agreement-title-text" onclick="editAgreementTitle()">NENHUM ACORDO SELECIONADO</span>
+                <input type="text" id="agreement-title-input" 
+                       onblur="saveAgreementTitle(this.value)" 
+                       onkeydown="if(event.key === 'Enter') saveAgreementTitle(this.value)" />
+            </span>
+            <!-- Fim Área do Título Editável -->
+
             <div class="editor-actions">
                 <button class="btn-action" style="background:var(--accent)" onclick="salvarAlteracoes()">SALVAR</button>
                 <button class="btn-action" style="background:var(--orange)" onclick="arquivarAcordo()">ARQUIVAR ACORDO</button>
@@ -168,13 +191,11 @@
 
         <div class="annotation-box">
             <div class="annotation-header">
-                <!-- Título ajustado para refletir que a agenda está aqui -->
-                <span>👩‍🏫 DICAS & AGENDA DIÁRIA</span>
-                <!-- Botão para adicionar nova tarefa diretamente aqui -->
-                <button onclick="addNewTaskPrompt()" class="btn-action" style="background: var(--purple); padding: 4px 8px;">+ Add Tarefa</button>
+                <span>👩‍🏫 DICAS (PADRÃO RESPOSTA)</span>
+                <button onclick="addNewNotePrompt('dicas')" class="btn-action" style="background: var(--purple); padding: 4px 8px;">+ Adicionar</button>
             </div>
             <div class="annotation-content" id="content-dicas">
-                <!-- Dicas ou Tarefas serão renderizadas aqui -->
+                <!-- Notas tipo Dicas serão renderizadas aqui -->
             </div>
         </div>
     </section>
@@ -189,9 +210,12 @@
     const agreementListTitleElement = document.getElementById('agreement-list-title');
     const agreementTextArea = document.getElementById('area-peca');
     const agreementLabel = document.getElementById('label-exame');
+    const agreementTitleText = document.getElementById('agreement-title-text');
+    const agreementTitleInput = document.getElementById('agreement-title-input');
     const AGREEMENTS_STORAGE_KEY = 'sistemaJoaquimAgreements';
-    // Chave de armazenamento para a agenda do gerente
-    const TASKS_STORAGE_KEY = 'sistemaJoaquimManagerTasks'; 
+    const TASKS_STORAGE_KEY = 'sistemaJoaquimManagerTasks';
+    const managerAgendaListElement = document.getElementById('manager-agenda-list');
+    const newTaskInput = document.getElementById('new-task-input');
 
 
     // --- Funções Mock ---
@@ -215,10 +239,10 @@
 
     window.onload = () => {
        renderAnnotations('postit'); 
-       // renderAnnotations('dicas') agora cuida das tarefas do gerente
        renderAnnotations('dicas'); 
        calculateRemainingBusinessDays();
        renderAgreementList(); 
+       renderTasks();
     }
     
     // ------------------------------------------------------------------
@@ -279,6 +303,32 @@
         }
     }
 
+    // Função para iniciar a edição do título inline
+    function editAgreementTitle() {
+        if (currentAgreementId === null) return;
+        agreementTitleText.style.display = 'none';
+        agreementTitleInput.style.display = 'inline';
+        agreementTitleInput.value = agreementTitleText.textContent;
+        agreementTitleInput.focus();
+    }
+
+    // Função para salvar o título editado (onblur ou Enter)
+    function saveAgreementTitle(newTitle) {
+        agreementTitleText.style.display = 'inline';
+        agreementTitleInput.style.display = 'none';
+        
+        if (currentAgreementId === null || !newTitle.trim()) return;
+
+        const agreements = getAgreements();
+        const agreementIndex = agreements.findIndex(a => a.id === currentAgreementId);
+
+        if (agreementIndex > -1) {
+            agreements[agreementIndex].title = newTitle.trim();
+            saveAgreements(agreements);
+            loadAgreement(currentAgreementId); // Recarrega para atualizar a interface e a lista lateral
+        }
+    }
+
     function arquivarAcordo() {
         if (currentAgreementId === null) {
             alert("Selecione um acordo para arquivar.");
@@ -299,7 +349,7 @@
             
             currentAgreementId = null;
             agreementTextArea.value = '';
-            agreementLabel.textContent = '📍 NENHUM ACORDO SELECIONADO';
+            agreementTitleText.textContent = 'NENHUM ACORDO SELECIONADO';
             renderAgreementList();
         }
     }
@@ -357,7 +407,7 @@
         if (agreement) {
             currentAgreementId = id;
             agreementTextArea.value = agreement.content;
-            agreementLabel.textContent = `📍 EDITANDO: ${agreement.title}`;
+            agreementTitleText.textContent = agreement.title;
             document.querySelectorAll('.exame-btn').forEach(btn => btn.classList.remove('active'));
             const currentButton = document.querySelector(`#lista-exames .exame-btn[onclick*="loadAgreement(${id})"]`);
             if (currentButton) {
@@ -367,11 +417,9 @@
     }
 
     // ------------------------------------------------------------------
-    // JS: Funcionalidade Agenda Diária do Gerente 
-    // Integrada ao painel de Dicas (Com Edição Inline)
+    // JS: Funcionalidade Agenda Diária do Gerente (Com Edição Inline)
     // ------------------------------------------------------------------
     
-    // As funções getTasks/saveTasks agora usam a chave diária
     function getTasks() {
         const todayKey = `sistemaJoaquimTasks_${new Date().toDateString()}`;
         return JSON.parse(localStorage.getItem(todayKey)) || [];
@@ -382,15 +430,30 @@
         localStorage.setItem(todayKey, JSON.stringify(tasks));
     }
 
-    // Função auxiliar chamada pelo botão no header do painel de Dicas/Agenda
-    function addNewTaskPrompt() {
-        const text = prompt("Digite a nova tarefa:");
-        if (text && text.trim() !== '') {
-            addTask(text);
-        }
+    function renderTasks() {
+        managerAgendaListElement.innerHTML = '';
+        const tasks = getTasks();
+
+        tasks.forEach(task => {
+            const taskDiv = document.createElement('div');
+            taskDiv.className = 'agenda-task';
+            
+            taskDiv.innerHTML = `
+                <span id="task-text-${task.id}" class="agenda-task-text" onclick="editTask(${task.id})">${task.text}</span>
+                <input type="text" id="task-input-${task.id}" class="agenda-task-input" 
+                       value="${task.text}" 
+                       onblur="updateTaskText(${task.id}, this.value)" 
+                       onkeydown="if(event.key === 'Enter') this.blur();" />
+                <button onclick="event.stopPropagation(); deleteTask(${task.id})" title="Marcar como concluída/Excluir">✔️</button>
+            `;
+            managerAgendaListElement.appendChild(taskDiv);
+        });
     }
 
-    function addTask(text) {
+    function addTask() {
+        const text = newTaskInput.value.trim();
+        if (text === '') return;
+
         const tasks = getTasks();
         const newTask = {
             id: Date.now(),
@@ -398,21 +461,17 @@
         };
         tasks.push(newTask);
         saveTasks(tasks);
-        // Não precisamos de input extra na sidebar, apenas renderizamos o painel de dicas novamente
-        renderAnnotations('dicas'); 
+        newTaskInput.value = '';
+        renderTasks();
     }
 
-    // Função para alternar para o modo de edição (usada tanto em postit quanto em agenda)
     function editTask(id) {
-        // Assume que os IDs de view/edit são únicos na página
-        document.getElementById(`view-${id}`).style.display = 'none';
-        const input = document.getElementById(`edit-${id}`);
-        input.style.display = 'flex'; // Usamos flex para alinhar o input e o botão de delete na mesma linha
-        const inputField = document.getElementById(`input-field-${id}`);
-        inputField.focus();
+        document.getElementById(`task-text-${id}`).style.display = 'none';
+        const input = document.getElementById(`task-input-${id}`);
+        input.style.display = 'inline';
+        input.focus();
     }
-    
-    // Função para salvar a edição (chamada no onblur ou Enter)
+
     function updateTaskText(id, newText) {
         const tasks = getTasks();
         const taskIndex = tasks.findIndex(task => task.id === id);
@@ -420,137 +479,21 @@
             tasks[taskIndex].text = newText;
             saveTasks(tasks);
         }
-        // Re-renderiza o painel inteiro para garantir a consistência visual
-        renderAnnotations('dicas'); 
+        document.getElementById(`task-text-${id}`).textContent = newText;
+        document.getElementById(`task-text-${id}`).style.display = 'inline';
+        document.getElementById(`task-input-${id}`).style.display = 'none';
     }
 
     function deleteTask(id) {
         let tasks = getTasks();
         tasks = tasks.filter(task => task.id !== id);
         saveTasks(tasks);
-        renderAnnotations('dicas'); // Re-renderiza após exclusão
+        renderTasks();
     }
 
 
     // ------------------------------------------------------------------
-    // JS: Funcionalidade de Anotações (Post-its e Dicas)
-    // RENDER ANNOTATIONS FOI MODIFICADA PARA GERENCIAR AMBOS OS TIPOS
-    // ------------------------------------------------------------------
-    
-    function saveAnnotation(type, text, id = null) {
-        // Mantém a lógica de salvamento separada para post-its
-        if (type === 'postit') {
-            const STORAGE_KEY = `sistemaJoaquimNotes_${type}`;
-            let annotations = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-            if (id) {
-                const index = annotations.findIndex(note => note.id === id);
-                if (index > -1) annotations[index].text = text;
-            } else {
-                annotations.push({ id: Date.now(), text: text, date: new Date().toLocaleString('pt-BR') });
-            }
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(annotations));
-            renderAnnotations(type);
-        }
-    }
-
-    function renderAnnotations(type) {
-        const contentAreaId = type === 'postit' ? 'content-postit' : 'content-dicas';
-        const contentArea = document.getElementById(contentAreaId);
-        contentArea.innerHTML = '';
-
-        let itemsToRender = [];
-        let itemClass = '';
-
-        if (type === 'postit') {
-            itemsToRender = JSON.parse(localStorage.getItem(`sistemaJoaquimNotes_${type}`)) || [];
-            itemClass = 'note-item type-postit';
-        } else if (type === 'dicas') {
-            // Se for 'dicas', renderizamos as tarefas do gerente
-            itemsToRender = getTasks(); 
-            itemClass = ''; // Estilo de agenda é aplicado na div interna
-        }
-        
-        itemsToRender.forEach(itemData => {
-            const item = document.createElement('div');
-            item.className = itemClass; 
-            item.id = `item-${type}-${itemData.id}`;
-            
-            if (type === 'postit') {
-                // Renderização de Post-it normal
-                item.setAttribute('onclick', `editNote('${type}', ${itemData.id})`);
-                item.innerHTML = `
-                    <div id="view-${itemData.id}">
-                        <p>${itemData.text}</p>
-                        <small>Criado em: ${itemData.date}</small>
-                        <button class="note-delete" onclick="event.stopPropagation(); deleteAnnotation('${type}', ${itemData.id})">✖️</button>
-                    </div>
-                    <div id="edit-${itemData.id}" style="display:none;">
-                        <textarea id="textarea-${itemData.id}" class="edit-mode-textarea">${itemData.text}</textarea>
-                        <button class="btn-action" style="background: var(--green);" onclick="event.stopPropagation(); saveEditedNote('${type}', ${itemData.id})">Salvar</button>
-                        <button class="btn-action" style="background: #e74c3c;" onclick="event.stopPropagation(); cancelEdit('${type}', ${itemData.id})">Cancelar</button>
-                    </div>
-                `;
-            } else if (type === 'dicas') {
-                 // Renderização da Tarefa do Gerente (Agenda)
-                 item.className = 'agenda-task'; // Aplica o estilo de agenda aqui
-                 item.innerHTML = `
-                    <span id="view-${itemData.id}" class="agenda-task-text" onclick="editTask(${itemData.id})">${itemData.text}</span>
-                    <div id="edit-${itemData.id}" style="display:none;" class="agenda-task-input">
-                        <input type="text" id="input-field-${itemData.id}" value="${itemData.text}" 
-                               onblur="updateTaskText(${itemData.id}, this.value)" 
-                               onkeydown="if(event.key === 'Enter') this.blur();" />
-                    </div>
-                    <div class="agenda-task-actions">
-                        <button onclick="event.stopPropagation(); deleteTask(${itemData.id})" title="Marcar como concluída/Excluir">✔️</button>
-                    </div>
-                 `;
-            }
-            
-            contentArea.appendChild(item);
-        });
-    }
-
-    // deleteAnnotation continua gerenciando post-its. deleteTask gerencia a agenda.
-    function deleteAnnotation(type, id) {
-        if (type === 'postit') {
-            const STORAGE_KEY = `sistemaJoaquimNotes_${type}`;
-            let annotations = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-            annotations = annotations.filter(annotation => annotation.id !== id);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(annotations));
-            renderAnnotations(type); 
-        }
-    }
-
-    function focusPanel(type) {
-        const panelId = type === 'postit' ? 'content-postit' : 'content-dicas';
-        const panel = document.getElementById(panelId);
-        panel.scrollIntoView({ behavior: 'smooth' });
-    }
-    
-    // Funções de edição para Post-its (não usadas na agenda, que usa editTask)
-    function editNote(type, id) {
-        document.getElementById(`view-${id}`).style.display = 'none';
-        document.getElementById(`edit-${id}`).style.display = 'block';
-        document.getElementById(`textarea-${id}`).focus();
-    }
-
-    function saveEditedNote(type, id) {
-        const newText = document.getElementById(`textarea-${id}`).value;
-        saveAnnotation(type, newText, id);
-    }
-
-    function cancelEdit(type, id) {
-        document.getElementById(`view-${id}`).style.display = 'block';
-        document.getElementById(`edit-${id}`).style.display = 'none';
-        const annotations = JSON.parse(localStorage.getItem(`sistemaJoaquimNotes_${type}`)) || [];
-        const originalNote = annotations.find(note => note.id === id);
-        if (originalNote) {
-            document.getElementById(`textarea-${id}`).value = originalNote.text;
-        }
-    }
-
-    // ------------------------------------------------------------------
-    // Outras Funcionalidades (Contador de Dias Úteis)
+    // Outras Funcionalidades (Contador de Dias Úteis e Anotações)
     // ------------------------------------------------------------------
     
     function calculateRemainingBusinessDays() {
@@ -577,6 +520,102 @@
         const counterElement = document.getElementById('business-days-counter');
         if (counterElement) {
             counterElement.textContent = `Faltam ${businessDaysRemaining} dias úteis no mês`;
+        }
+    }
+
+    function addNewNotePrompt(type) {
+        const text = prompt(`Digite sua nova anotação (${type}):`);
+        if (text && text.trim() !== '') {
+            saveAnnotation(type, text);
+        }
+    }
+
+    function saveAnnotation(type, text, id = null) {
+        const STORAGE_KEY = `sistemaJoaquimNotes_${type}`;
+        let annotations = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        
+        if (id) {
+            const index = annotations.findIndex(note => note.id === id);
+            if (index > -1) {
+                annotations[index].text = text;
+            }
+        } else {
+            const newAnnotation = {
+                id: Date.now(),
+                text: text,
+                date: new Date().toLocaleString('pt-BR')
+            };
+            annotations.push(newAnnotation);
+        }
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(annotations));
+        renderAnnotations(type);
+    }
+
+    function renderAnnotations(type) {
+        const STORAGE_KEY = `sistemaJoaquimNotes_${type}`;
+        const annotations = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        const contentAreaId = type === 'postit' ? 'content-postit' : 'content-dicas';
+        const contentArea = document.getElementById(contentAreaId);
+        contentArea.innerHTML = '';
+
+        annotations.forEach(annotation => {
+            const item = document.createElement('div');
+            item.className = `note-item type-${type}`; 
+            item.id = `note-${type}-${annotation.id}`;
+            
+            if (type === 'postit') {
+                 item.setAttribute('onclick', `editNote('${type}', ${annotation.id})`);
+            }
+           
+            item.innerHTML = `
+                <div id="view-${annotation.id}">
+                    <p>${annotation.text}</p>
+                    <small>Criado em: ${annotation.date}</small>
+                    <button class="note-delete" onclick="event.stopPropagation(); deleteAnnotation('${type}', ${annotation.id})">✖️</button>
+                </div>
+                <div id="edit-${annotation.id}" style="display:none;">
+                    <textarea id="textarea-${annotation.id}" class="edit-mode-textarea">${annotation.text}</textarea>
+                    <button class="btn-action" style="background: var(--green);" onclick="event.stopPropagation(); saveEditedNote('${type}', ${annotation.id})">Salvar</button>
+                    <button class="btn-action" style="background: #e74c3c;" onclick="event.stopPropagation(); cancelEdit('${type}', ${annotation.id})">Cancelar</button>
+                </div>
+            `;
+            contentArea.appendChild(item);
+        });
+    }
+
+    function deleteAnnotation(type, id) {
+        const STORAGE_KEY = `sistemaJoaquimNotes_${type}`;
+        let annotations = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        annotations = annotations.filter(annotation => annotation.id !== id);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(annotations));
+        renderAnnotations(type); 
+    }
+
+    function focusPanel(type) {
+        const panelId = type === 'postit' ? 'content-postit' : 'content-dicas';
+        const panel = document.getElementById(panelId);
+        panel.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function editNote(type, id) {
+        document.getElementById(`view-${id}`).style.display = 'none';
+        document.getElementById(`edit-${id}`).style.display = 'block';
+        document.getElementById(`textarea-${id}`).focus();
+    }
+
+    function saveEditedNote(type, id) {
+        const newText = document.getElementById(`textarea-${id}`).value;
+        saveAnnotation(type, newText, id);
+    }
+
+    function cancelEdit(type, id) {
+        document.getElementById(`view-${id}`).style.display = 'block';
+        document.getElementById(`edit-${id}`).style.display = 'none';
+        const annotations = JSON.parse(localStorage.getItem(`sistemaJoaquimNotes_${type}`)) || [];
+        const originalNote = annotations.find(note => note.id === id);
+        if (originalNote) {
+            document.getElementById(`textarea-${id}`).value = originalNote.text;
         }
     }
 </script>
