@@ -50,12 +50,15 @@
         
         #btn-reopen { position: fixed; left: 0; top: 80px; background: var(--primary); color: white; border: none; padding: 10px; border-radius: 0 5px 5px 0; cursor: pointer; display: none; z-index: 900; }
 
-        .note-item { padding: 8px; border-radius: 4px; margin-bottom: 8px; font-size: 0.75rem; position: relative; }
+        .note-item { padding: 8px; border-radius: 4px; margin-bottom: 8px; font-size: 0.75rem; position: relative; cursor: pointer; }
         .note-delete { position: absolute; right: 5px; top: 5px; background: none; border: none; color: red; cursor: pointer; }
         .type-postit { background: var(--yellow); }
         .type-dicas { background: var(--green); color: white; }
-        .note-form textarea { width: 100%; height: 60px; padding: 5px; margin-bottom: 5px; }
-
+        
+        /* Estilos para o modo de edição */
+        .edit-mode-textarea { width: 100%; height: 100px; padding: 5px; margin-bottom: 5px; }
+        .edit-mode-actions { display: block; }
+        .view-mode-actions { display: none; }
 
         @media (max-width: 1024px) {
             #resizer { display: none; }
@@ -72,14 +75,11 @@
 <body>
 
 <header>
-    <!-- Tudo movido para header-left -->
     <div class="header-left">
         <button id="mobile-toggle" style="background:#34495e; color:white; border:none; padding:8px; border-radius:4px; display:none;" onclick="toggleSidebarMobile()">☰ MENU</button>
-        <!-- Botões de navegação movidos para a esquerda -->
         <button class="dropbtn btn-postit" onclick="focusPanel('postit')">📌 Post-its</button>
         <button class="dropbtn btn-dicas" onclick="focusPanel('dicas')">👩‍🏫 Dicas</button>
     </div>
-    <!-- nav-group agora pode ficar vazio ou ser removido se não houver mais nada na direita -->
     <div class="nav-group">
     </div>
 </header>
@@ -100,7 +100,7 @@
 
             <h4 style="margin-top:15px">💾 DADOS</h4>
             <button class="btn-action" style="background:#27ae60; width:100%" onclick="fazerBackup()">EXPORTAR</button>
-            <button class="btn-action" style="background:#2980b9; width:100%; margin-top:5px" onclick="document.getElementById('input-file').click()">IMPORTAR</button>
+            <button class="btn-action" style="background:#2980b9; width:100%; margin-top:5px" onclick="document.getElementById('input-file").click()">IMPORTAR</button>
             <input type="file" id="input-file" style="display:none" onchange="importarBackup(this)">
         </div>
     </aside>
@@ -122,6 +122,7 @@
 
     <section class="annotations-section" id="right-panel">
         
+        <!-- Painel de Post-its (Folha de Caderno) com edição habilitada -->
         <div class="annotation-box">
             <div class="annotation-header">
                 <span>📌 POST-ITS (FOLHA DE CADERNO)</span>
@@ -132,6 +133,7 @@
             </div>
         </div>
 
+        <!-- Painel de Dicas (Padrão Resposta) - Sem edição inline, apenas visualização/exclusão -->
         <div class="annotation-box">
             <div class="annotation-header">
                 <span>👩‍🏫 DICAS (PADRÃO RESPOSTA)</span>
@@ -146,7 +148,7 @@
 </main>
 
 <script>
-    // --- Funções Mock ---
+    // --- Funções Mock (mantidas para evitar erros de referência) ---
     function toggleSidebarMobile() {}
     function toggleSidebarPC() {
         const sidebar = document.getElementById('sidebar-main');
@@ -170,9 +172,12 @@
     }
     
     // ------------------------------------------------------------------
-    // JS: Funcionalidade de Anotações em Painéis Fixos
+    // JS: Funcionalidade de Anotações em Painéis Fixos com Edição Inline
     // ------------------------------------------------------------------
 
+    /**
+     * Pede ao usuário uma nova anotação e salva.
+     */
     function addNewNotePrompt(type) {
         const text = prompt(`Digite sua nova anotação (${type}):`);
         if (text && text.trim() !== '') {
@@ -180,21 +185,36 @@
         }
     }
 
-    function saveAnnotation(type, text) {
+    /**
+     * Salva uma nova anotação no LocalStorage.
+     */
+    function saveAnnotation(type, text, id = null) {
         const STORAGE_KEY = `sistemaJoaquimNotes_${type}`;
         let annotations = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
         
-        const newAnnotation = {
-            id: Date.now(),
-            text: text,
-            date: new Date().toLocaleString('pt-BR')
-        };
+        if (id) {
+            // Se o ID existe, atualizamos a anotação existente
+            const index = annotations.findIndex(note => note.id === id);
+            if (index > -1) {
+                annotations[index].text = text;
+            }
+        } else {
+            // Caso contrário, criamos uma nova anotação
+            const newAnnotation = {
+                id: Date.now(),
+                text: text,
+                date: new Date().toLocaleString('pt-BR')
+            };
+            annotations.push(newAnnotation);
+        }
 
-        annotations.push(newAnnotation);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(annotations));
         renderAnnotations(type);
     }
 
+    /**
+     * Renderiza as anotações salvas na interface para um tipo específico.
+     */
     function renderAnnotations(type) {
         const STORAGE_KEY = `sistemaJoaquimNotes_${type}`;
         const annotations = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
@@ -205,15 +225,33 @@
         annotations.forEach(annotation => {
             const item = document.createElement('div');
             item.className = `note-item type-${type}`; 
+            item.id = `note-${type}-${annotation.id}`;
+            
+            // Adicionamos o listener de clique para edição APENAS nos Post-its
+            if (type === 'postit') {
+                 item.setAttribute('onclick', `editNote('${type}', ${annotation.id})`);
+            }
+           
             item.innerHTML = `
-                <p>${annotation.text}</p>
-                <small>Criado em: ${annotation.date}</small>
-                <button class="note-delete" onclick="deleteAnnotation('${type}', ${annotation.id})">✖️</button>
+                <div id="view-${annotation.id}">
+                    <p>${annotation.text}</p>
+                    <small>Criado em: ${annotation.date}</small>
+                    <button class="note-delete" onclick="event.stopPropagation(); deleteAnnotation('${type}', ${annotation.id})">✖️</button>
+                </div>
+                <!-- Área de edição oculta inicialmente -->
+                <div id="edit-${annotation.id}" style="display:none;">
+                    <textarea id="textarea-${annotation.id}" class="edit-mode-textarea">${annotation.text}</textarea>
+                    <button class="btn-action" style="background: var(--green);" onclick="event.stopPropagation(); saveEditedNote('${type}', ${annotation.id})">Salvar</button>
+                    <button class="btn-action" style="background: #e74c3c;" onclick="event.stopPropagation(); cancelEdit('${type}', ${annotation.id})">Cancelar</button>
+                </div>
             `;
             contentArea.appendChild(item);
         });
     }
 
+    /**
+     * Remove uma anotação específica pelo ID e tipo.
+     */
     function deleteAnnotation(type, id) {
         const STORAGE_KEY = `sistemaJoaquimNotes_${type}`;
         let annotations = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
@@ -222,10 +260,40 @@
         renderAnnotations(type); 
     }
 
+    /**
+     * Função para focar visualmente o painel quando clicado no menu superior.
+     */
     function focusPanel(type) {
         const panelId = type === 'postit' ? 'content-postit' : 'content-dicas';
         const panel = document.getElementById(panelId);
         panel.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // --- Funções de Edição Inline (Novas) ---
+    function editNote(type, id) {
+        // Oculta a visualização e mostra a área de edição para o ID específico
+        document.getElementById(`view-${id}`).style.display = 'none';
+        document.getElementById(`edit-${id}`).style.display = 'block';
+        // Foca na textarea automaticamente
+        document.getElementById(`textarea-${id}`).focus();
+    }
+
+    function saveEditedNote(type, id) {
+        const newText = document.getElementById(`textarea-${id}`).value;
+        saveAnnotation(type, newText, id); // Usa a função saveAnnotation com o ID
+        // renderAnnotations(type) é chamado dentro de saveAnnotation, o que atualiza a visualização automaticamente.
+    }
+
+    function cancelEdit(type, id) {
+        // Mostra a visualização e oculta a área de edição
+        document.getElementById(`view-${id}`).style.display = 'block';
+        document.getElementById(`edit-${id}`).style.display = 'none';
+        // Opcional: recarrega o texto original na textarea caso o usuário cancele
+        const annotations = JSON.parse(localStorage.getItem(`sistemaJoaquimNotes_${type}`)) || [];
+        const originalNote = annotations.find(note => note.id === id);
+        if (originalNote) {
+            document.getElementById(`textarea-${id}`).value = originalNote.text;
+        }
     }
 </script>
 </body>
