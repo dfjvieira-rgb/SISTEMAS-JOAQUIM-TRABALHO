@@ -70,7 +70,6 @@
         
         .editor-actions { display: flex; gap: 5px; }
 
-
         @media (max-width: 1024px) {
             #resizer { display: none; }
             main { flex-direction: column; overflow-y: auto; }
@@ -101,10 +100,13 @@
 <main id="main-container">
     <aside class="sidebar" id="sidebar-main">
         <div class="sidebar-content">
-            <div style="display:flex; justify-content:space-between; align-items:center">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
                 <h4>📂 ACORDOS ATIVOS</h4>
                 <button onclick="toggleSidebarPC()" class="pc-only" style="border:none; background:none; cursor:pointer; color:red; font-size:0.6rem;">FECHAR</button>
             </div>
+            <!-- Botão Novo Acordo -->
+            <button class="btn-action" style="background:var(--green); width:100%; margin-bottom: 15px;" onclick="createNewAgreement()">+ NOVO ACORDO</button>
+
             <!-- Lista de Acordos Ativos (ex-lista-exames) -->
             <div id="lista-exames"></div> 
             
@@ -113,7 +115,7 @@
 
             <h4 style="margin-top:15px">💾 DADOS</h4>
             <button class="btn-action" style="background:#27ae60; width:100%" onclick="fazerBackup()">EXPORTAR</button>
-            <button class="btn-action" style="background:#2980b9; width:100%; margin-top:5px" onclick="document.getElementById('input-file').click()">IMPORTAR</button>
+            <button class="btn-action" style="background:#2980b9; width:100%; margin-top:5px" onclick="document.getElementById('input-file").click()">IMPORTAR</button>
             <input type="file" id="input-file" style="display:none" onchange="importarBackup(this)">
         </div>
     </aside>
@@ -212,6 +214,26 @@
     }
 
     /**
+     * Cria um novo acordo através de um prompt.
+     */
+    function createNewAgreement() {
+        const title = prompt("Digite o nome do novo acordo:");
+        if (title && title.trim() !== '') {
+            const agreements = getAgreements();
+            const newAgreement = {
+                id: Date.now(),
+                title: title.trim(),
+                content: '',
+                status: 'ativo'
+            };
+            agreements.push(newAgreement);
+            saveAgreements(agreements);
+            renderAgreementList();
+            loadAgreement(newAgreement.id); // Carrega o novo acordo automaticamente
+        }
+    }
+
+    /**
      * Salva o conteúdo da textarea no acordo atual.
      */
     function salvarAlteracoes() {
@@ -268,11 +290,7 @@
         const activeAgreements = agreements.filter(a => a.status === 'ativo');
 
         if (activeAgreements.length === 0) {
-            agreementListElement.innerHTML = '<p style="font-size: 0.7rem; padding: 10px;">Nenhum acordo ativo encontrado. Crie um manualmente no JS para testar, se necessário.</p>';
-            // Exemplo de como adicionar um acordo inicial se a lista estiver vazia (descomente para testar)
-            // agreements.push({id: 1, title: 'Acordo Teste Inicial', content: 'Conteúdo inicial do acordo.', status: 'ativo'});
-            // saveAgreements(agreements);
-            // renderAgreementList();
+            agreementListElement.innerHTML = '<p style="font-size: 0.7rem; padding: 10px;">Nenhum acordo ativo.</p>';
             return;
         }
 
@@ -280,7 +298,14 @@
             const button = document.createElement('button');
             button.className = 'exame-btn';
             button.textContent = agreement.title;
-            button.onclick = () => loadAgreement(agreement.id);
+            // Usamos uma arrow function para passar o ID corretamente no onclick
+            button.onclick = () => loadAgreement(agreement.id); 
+            
+            // Se este for o acordo atualmente carregado, marque-o como ativo visualmente
+            if (currentAgreementId === agreement.id) {
+                button.classList.add('active');
+            }
+            
             agreementListElement.appendChild(button);
         });
     }
@@ -298,7 +323,11 @@
             agreementLabel.textContent = `📍 EDITANDO: ${agreement.title}`;
             // Remove a classe 'active' de todos os botões e adiciona ao clicado
             document.querySelectorAll('.exame-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            // Encontra o botão específico que corresponde ao ID e adiciona a classe 'active'
+            const currentButton = document.querySelector(`#lista-exames .exame-btn[onclick="loadAgreement(${id})"]`);
+            if (currentButton) {
+                currentButton.classList.add('active');
+            }
         }
     }
 
