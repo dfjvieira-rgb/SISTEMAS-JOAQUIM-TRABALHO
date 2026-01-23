@@ -68,7 +68,6 @@
             border-radius: 4px;
         }
         
-        /* Estilo para o novo grupo de botões na área de edição */
         .editor-actions { display: flex; gap: 5px; }
 
 
@@ -103,10 +102,11 @@
     <aside class="sidebar" id="sidebar-main">
         <div class="sidebar-content">
             <div style="display:flex; justify-content:space-between; align-items:center">
-                <h4>📂 ACORDO DE TRABALHO</h4>
+                <h4>📂 ACORDOS ATIVOS</h4>
                 <button onclick="toggleSidebarPC()" class="pc-only" style="border:none; background:none; cursor:pointer; color:red; font-size:0.6rem;">FECHAR</button>
             </div>
-            <div id="lista-exames"></div>
+            <!-- Lista de Acordos Ativos (ex-lista-exames) -->
+            <div id="lista-exames"></div> 
             
             <h4 style="margin-top:15px">💡 MURAL RÁPIDO</h4>
             <div id="mural-fixacao"></div>
@@ -125,9 +125,8 @@
             <button class="btn-action" style="background:#e74c3c; margin-left:5px" onclick="cancelarEdicao()">CANCELAR</button>
         </div>
         
-        <!-- Área de Header do Editor com os novos botões -->
         <div class="editor-header" style="padding:10px; display:flex; justify-content:space-between; align-items:center; background:#eee;">
-            <span id="label-exame" style="font-size:0.7rem; font-weight:bold;">📍 SELECIONE UM ACORDO</span>
+            <span id="label-exame" style="font-size:0.7rem; font-weight:bold;">📍 NENHUM ACORDO SELECIONADO</span>
             <div class="editor-actions">
                 <button class="btn-action" style="background:var(--accent)" onclick="salvarAlteracoes()">SALVAR</button>
                 <button class="btn-action" style="background:var(--orange)" onclick="arquivarAcordo()">ARQUIVAR ACORDO</button>
@@ -166,6 +165,14 @@
 </main>
 
 <script>
+    // --- Variáveis Globais de Controle ---
+    let currentAgreementId = null;
+    const agreementListElement = document.getElementById('lista-exames');
+    const agreementTextArea = document.getElementById('area-peca');
+    const agreementLabel = document.getElementById('label-exame');
+    const AGREEMENTS_STORAGE_KEY = 'sistemaJoaquimAgreements';
+
+
     // --- Funções Mock ---
     function toggleSidebarMobile() {}
     function toggleSidebarPC() {
@@ -180,22 +187,125 @@
     }
     function fazerBackup() { alert("Backup Exportado (Mock)"); }
     function importarBackup(input) { alert("Backup Importado (Mock)"); }
-    // Implementação mock para as novas funções Salvar/Arquivar
-    function salvarAlteracoes() { alert("Acordo salvo com sucesso! (Mock)"); }
     function cancelarEdicao() { alert("Edição Cancelada (Mock)"); }
     function exportarTXT() { alert("Exportando para TXT (Mock)"); }
-    function arquivarAcordo() { alert("Acordo arquivado. A lógica de arquivamento precisa ser implementada com base na sua gestão de acordos na barra lateral."); }
+    
 
 
     window.onload = () => {
        renderAnnotations('postit'); 
        renderAnnotations('dicas'); 
        calculateRemainingBusinessDays();
+       renderAgreementList(); // Carrega a lista de acordos
     }
     
     // ------------------------------------------------------------------
-    // JS: Funcionalidade de Contador de Dias Úteis
+    // JS: Funcionalidade de Gestão de Acordos e Arquivamento
     // ------------------------------------------------------------------
+
+    function getAgreements() {
+        return JSON.parse(localStorage.getItem(AGREEMENTS_STORAGE_KEY)) || [];
+    }
+
+    function saveAgreements(agreements) {
+        localStorage.setItem(AGREEMENTS_STORAGE_KEY, JSON.stringify(agreements));
+    }
+
+    /**
+     * Salva o conteúdo da textarea no acordo atual.
+     */
+    function salvarAlteracoes() {
+        if (currentAgreementId === null) {
+            alert("Selecione um acordo para salvar as alterações.");
+            return;
+        }
+        
+        const agreements = getAgreements();
+        const agreementIndex = agreements.findIndex(a => a.id === currentAgreementId);
+        
+        if (agreementIndex > -1) {
+            agreements[agreementIndex].content = agreementTextArea.value;
+            saveAgreements(agreements);
+            alert("Acordo salvo com sucesso!");
+        }
+    }
+
+    /**
+     * Move o acordo atual para o status 'arquivado'.
+     */
+    function arquivarAcordo() {
+        if (currentAgreementId === null) {
+            alert("Selecione um acordo para arquivar.");
+            return;
+        }
+
+        if (!confirm("Tem certeza que deseja arquivar este acordo?")) {
+            return;
+        }
+        
+        const agreements = getAgreements();
+        const agreementIndex = agreements.findIndex(a => a.id === currentAgreementId);
+
+        if (agreementIndex > -1) {
+            agreements[agreementIndex].status = 'arquivado';
+            saveAgreements(agreements);
+            alert("Acordo arquivado com sucesso!");
+            
+            // Limpa a área de edição e atualiza a lista lateral
+            currentAgreementId = null;
+            agreementTextArea.value = '';
+            agreementLabel.textContent = '📍 NENHUM ACORDO SELECIONADO';
+            renderAgreementList();
+        }
+    }
+
+    /**
+     * Renderiza a lista de acordos ATIVOS na barra lateral.
+     */
+    function renderAgreementList() {
+        agreementListElement.innerHTML = '';
+        const agreements = getAgreements();
+        const activeAgreements = agreements.filter(a => a.status === 'ativo');
+
+        if (activeAgreements.length === 0) {
+            agreementListElement.innerHTML = '<p style="font-size: 0.7rem; padding: 10px;">Nenhum acordo ativo encontrado. Crie um manualmente no JS para testar, se necessário.</p>';
+            // Exemplo de como adicionar um acordo inicial se a lista estiver vazia (descomente para testar)
+            // agreements.push({id: 1, title: 'Acordo Teste Inicial', content: 'Conteúdo inicial do acordo.', status: 'ativo'});
+            // saveAgreements(agreements);
+            // renderAgreementList();
+            return;
+        }
+
+        activeAgreements.forEach(agreement => {
+            const button = document.createElement('button');
+            button.className = 'exame-btn';
+            button.textContent = agreement.title;
+            button.onclick = () => loadAgreement(agreement.id);
+            agreementListElement.appendChild(button);
+        });
+    }
+
+    /**
+     * Carrega um acordo específico na área de edição principal.
+     */
+    function loadAgreement(id) {
+        const agreements = getAgreements();
+        const agreement = agreements.find(a => a.id === id);
+
+        if (agreement) {
+            currentAgreementId = id;
+            agreementTextArea.value = agreement.content;
+            agreementLabel.textContent = `📍 EDITANDO: ${agreement.title}`;
+            // Remove a classe 'active' de todos os botões e adiciona ao clicado
+            document.querySelectorAll('.exame-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Outras Funcionalidades (Contador de Dias Úteis e Anotações)
+    // ------------------------------------------------------------------
+
     function calculateRemainingBusinessDays() {
         const today = new Date();
         const year = today.getFullYear();
@@ -222,10 +332,6 @@
             counterElement.textContent = `Faltam ${businessDaysRemaining} dias úteis no mês`;
         }
     }
-
-    // ------------------------------------------------------------------
-    // JS: Funcionalidade de Anotações em Painéis Fixos com Edição Inline
-    // ------------------------------------------------------------------
 
     function addNewNotePrompt(type) {
         const text = prompt(`Digite sua nova anotação (${type}):`);
