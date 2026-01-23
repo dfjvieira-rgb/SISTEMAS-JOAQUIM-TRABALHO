@@ -76,8 +76,9 @@
         .editor-actions { display: flex; gap: 5px; }
         
         /* Estilos da nova agenda */
-        .agenda-task { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #ddd; }
-        .agenda-task input[type="text"] { border: none; background: transparent; width: calc(100% - 30px); font-size: 0.8rem; }
+        .agenda-task { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #ddd; cursor: pointer; }
+        .agenda-task-text { width: calc(100% - 30px); font-size: 0.8rem; }
+        .agenda-task-input { display: none; width: calc(100% - 30px); border: 1px solid var(--accent); padding: 2px; }
         .agenda-task button { background: none; border: none; cursor: pointer; color: var(--green); }
 
 
@@ -376,11 +377,10 @@
     }
 
     // ------------------------------------------------------------------
-    // JS: Funcionalidade Agenda Diária do Gerente
+    // JS: Funcionalidade Agenda Diária do Gerente (Com Edição Inline)
     // ------------------------------------------------------------------
     
     function getTasks() {
-        // As tarefas são específicas do dia atual
         const todayKey = `sistemaJoaquimTasks_${new Date().toDateString()}`;
         return JSON.parse(localStorage.getItem(todayKey)) || [];
     }
@@ -398,10 +398,17 @@
             const taskDiv = document.createElement('div');
             taskDiv.className = 'agenda-task';
             
-            // Usamos input type="text" para permitir edição inline fácil
             taskDiv.innerHTML = `
-                <input type="text" id="task-input-${task.id}" value="${task.text}" onchange="updateTaskText(${task.id}, this.value)" />
-                <button onclick="deleteTask(${task.id})" title="Marcar como concluída/Excluir">✔️</button>
+                <!-- Modo de visualização (clicável para editar) -->
+                <span id="task-text-${task.id}" class="agenda-task-text" onclick="editTask(${task.id})">${task.text}</span>
+                
+                <!-- Input de edição (oculto) -->
+                <input type="text" id="task-input-${task.id}" class="agenda-task-input" 
+                       value="${task.text}" 
+                       onblur="updateTaskText(${task.id}, this.value)" 
+                       onkeydown="if(event.key === 'Enter') this.blur();" />
+                       
+                <button onclick="event.stopPropagation(); deleteTask(${task.id})" title="Marcar como concluída/Excluir">✔️</button>
             `;
             managerAgendaListElement.appendChild(taskDiv);
         });
@@ -422,6 +429,13 @@
         renderTasks();
     }
 
+    function editTask(id) {
+        document.getElementById(`task-text-${id}`).style.display = 'none';
+        const input = document.getElementById(`task-input-${id}`);
+        input.style.display = 'inline';
+        input.focus();
+    }
+
     function updateTaskText(id, newText) {
         const tasks = getTasks();
         const taskIndex = tasks.findIndex(task => task.id === id);
@@ -429,6 +443,9 @@
             tasks[taskIndex].text = newText;
             saveTasks(tasks);
         }
+        document.getElementById(`task-text-${id}`).textContent = newText;
+        document.getElementById(`task-text-${id}`).style.display = 'inline';
+        document.getElementById(`task-input-${id}`).style.display = 'none';
     }
 
     function deleteTask(id) {
