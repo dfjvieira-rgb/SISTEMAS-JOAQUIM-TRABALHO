@@ -58,7 +58,6 @@
         .edit-mode-actions { display: block; }
         .view-mode-actions { display: none; }
 
-        /* Estilo para o novo contador */
         #business-days-counter {
             font-family: monospace;
             font-size: 1rem;
@@ -68,6 +67,10 @@
             background: #34495e;
             border-radius: 4px;
         }
+        
+        /* Estilo para o novo grupo de botões na área de edição */
+        .editor-actions { display: flex; gap: 5px; }
+
 
         @media (max-width: 1024px) {
             #resizer { display: none; }
@@ -89,7 +92,6 @@
         <button class="dropbtn btn-postit" onclick="focusPanel('postit')">📌 Post-its</button>
         <button class="dropbtn btn-dicas" onclick="focusPanel('dicas')">👩‍🏫 Dicas</button>
     </div>
-    <!-- Contador adicionado aqui na direita -->
     <div class="nav-group">
         <span id="business-days-counter"></span>
     </div>
@@ -122,10 +124,17 @@
             <button class="btn-action" style="background:var(--green); margin-left:10px" onclick="salvarAlteracoes()">SALVAR</button>
             <button class="btn-action" style="background:#e74c3c; margin-left:5px" onclick="cancelarEdicao()">CANCELAR</button>
         </div>
+        
+        <!-- Área de Header do Editor com os novos botões -->
         <div class="editor-header" style="padding:10px; display:flex; justify-content:space-between; align-items:center; background:#eee;">
             <span id="label-exame" style="font-size:0.7rem; font-weight:bold;">📍 SELECIONE UM ACORDO</span>
-            <button class="btn-action" style="background:var(--green)" onclick="exportarTXT()">TXT</button>
+            <div class="editor-actions">
+                <button class="btn-action" style="background:var(--accent)" onclick="salvarAlteracoes()">SALVAR</button>
+                <button class="btn-action" style="background:var(--orange)" onclick="arquivarAcordo()">ARQUIVAR ACORDO</button>
+                <button class="btn-action" style="background:var(--green)" onclick="exportarTXT()">TXT</button>
+            </div>
         </div>
+        
         <textarea id="area-peca" placeholder="Escreva aqui..."></textarea>
     </section>
 
@@ -171,14 +180,17 @@
     }
     function fazerBackup() { alert("Backup Exportado (Mock)"); }
     function importarBackup(input) { alert("Backup Importado (Mock)"); }
-    function salvarAlteracoes() { alert("Alterações Salvas (Mock)"); }
+    // Implementação mock para as novas funções Salvar/Arquivar
+    function salvarAlteracoes() { alert("Acordo salvo com sucesso! (Mock)"); }
     function cancelarEdicao() { alert("Edição Cancelada (Mock)"); }
     function exportarTXT() { alert("Exportando para TXT (Mock)"); }
+    function arquivarAcordo() { alert("Acordo arquivado. A lógica de arquivamento precisa ser implementada com base na sua gestão de acordos na barra lateral."); }
+
 
     window.onload = () => {
        renderAnnotations('postit'); 
        renderAnnotations('dicas'); 
-       calculateRemainingBusinessDays(); // Inicializa o contador
+       calculateRemainingBusinessDays();
     }
     
     // ------------------------------------------------------------------
@@ -188,24 +200,19 @@
         const today = new Date();
         const year = today.getFullYear();
         const month = today.getMonth();
-        // Último dia do mês (passando 0 como dia, JS volta 1 dia do próximo mês)
         const lastDayOfMonth = new Date(year, month + 1, 0); 
         
         let businessDaysRemaining = 0;
         let currentDate = new Date(today);
 
-        // Loop do dia atual até o último dia do mês
         while (currentDate <= lastDayOfMonth) {
             const dayOfWeek = currentDate.getDay();
-            // getDay() retorna 0 para Domingo e 6 para Sábado
             if (dayOfWeek !== 0 && dayOfWeek !== 6) {
                 businessDaysRemaining++;
             }
-            // Avança para o próximo dia
             currentDate.setDate(currentDate.getDate() + 1);
         }
 
-        // Subtrai o dia de hoje da contagem se ele for um dia útil (pois a contagem é "quantos faltam")
         if (today.getDay() !== 0 && today.getDay() !== 6) {
             businessDaysRemaining -= 1;
         }
