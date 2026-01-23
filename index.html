@@ -21,7 +21,7 @@
         .nav-group { display: flex; gap: 5px; }
         .dropbtn { color: white; padding: 8px 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.65rem; text-transform: uppercase; }
         .btn-postit { background-color: var(--yellow); color: #333; }
-        .btn-dicas { background-color: var(--purple); }
+        .btn-dicas { background-color: var(--purple); } /* Agora é o botão da agenda */
 
         .dropdown-content { display: none; } 
 
@@ -54,10 +54,18 @@
         
         #btn-reopen { position: fixed; left: 0; top: 80px; background: var(--primary); color: white; border: none; padding: 10px; border-radius: 0 5px 5px 0; cursor: pointer; display: none; z-index: 900; }
 
-        .note-item { padding: 8px; border-radius: 4px; margin-bottom: 8px; font-size: 0.75rem; position: relative; cursor: pointer; }
+        .note-item { padding: 8px; border-radius: 4px; margin-bottom: 8px; font-size: 0.75rem; position: relative; background: white; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); }
+        /* Removi o cursor: pointer padrão para a agenda, pois a edição agora é via botão */
+        /* .note-item { cursor: pointer; } */ 
+
+
         .note-delete { position: absolute; right: 5px; top: 5px; background: none; border: none; color: red; cursor: pointer; }
         .type-postit { background: var(--yellow); }
-        .type-dicas { background: var(--green); color: white; }
+        /* Adicionado novo estilo para a Agenda do Painel Direito */
+        .type-agenda { 
+            background: var(--purple); 
+            color: white; 
+        }
         
         .edit-mode-textarea { width: 100%; height: 100px; padding: 5px; margin-bottom: 5px; }
         .edit-mode-actions { display: block; }
@@ -75,7 +83,7 @@
         
         .editor-actions { display: flex; gap: 5px; }
         
-        /* Estilos da agenda */
+        /* Estilos da agenda sidebar */
         .agenda-task { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #ddd; cursor: pointer; }
         .agenda-task-text { width: calc(100% - 30px); font-size: 0.8rem; }
         .agenda-task-input { display: none; width: calc(100% - 30px); border: 1px solid var(--accent); padding: 2px; }
@@ -104,7 +112,8 @@
     <div class="header-left">
         <button id="mobile-toggle" style="background:#34495e; color:white; border:none; padding:8px; border-radius:4px; display:none;" onclick="toggleSidebarMobile()">☰ MENU</button>
         <button class="dropbtn btn-postit" onclick="focusPanel('postit')">📌 Post-its</button>
-        <button class="dropbtn btn-dicas" onclick="focusPanel('dicas')">👩‍🏫 Dicas</button>
+        <!-- Nome alterado para refletir a nova agenda -->
+        <button class="dropbtn btn-dicas" onclick="focusPanel('agenda')">📅 Agenda</button>
     </div>
     <div class="nav-group">
         <span id="business-days-counter"></span>
@@ -126,10 +135,10 @@
 
             <div id="lista-exames"></div> 
             
-            <h4 style="margin-top:15px">💡 MURAL RÁPIDO</h4>
+            <h4 style="margin-top:15px">💡 MURAL RÁPIDO (Anotações Antigas)</h4>
             <div id="mural-fixacao"></div>
 
-            <h4 style="margin-top:15px">📅 AGENDA DIÁRIA DO GERENTE</h4>
+            <h4 style="margin-top:15px">📅 AGENDA DIÁRIA (Sidebar)</h4>
             <div id="manager-agenda-list">
                 <!-- Tarefas aqui -->
             </div>
@@ -189,15 +198,18 @@
             </div>
         </div>
 
+        <!-- SEÇÃO DA AGENDA DO GERENTE (PAINEL DIREITO) -->
         <div class="annotation-box">
             <div class="annotation-header">
-                <span>👩‍🏫 DICAS (PADRÃO RESPOSTA)</span>
-                <button onclick="addNewNotePrompt('dicas')" class="btn-action" style="background: var(--purple); padding: 4px 8px;">+ Adicionar</button>
+                <span>📅 AGENDA DO GERENTE</span>
+                <button onclick="addNewTaskRightPanel()" class="btn-action" style="background: var(--purple); padding: 4px 8px;">+ Adicionar Tarefa</button>
             </div>
-            <div class="annotation-content" id="content-dicas">
-                <!-- Notas tipo Dicas serão renderizadas aqui -->
+            <div class="annotation-content" id="content-agenda">
+                <!-- Tarefas da Agenda serão renderizadas aqui -->
             </div>
         </div>
+        <!-- FIM SEÇÃO DA AGENDA -->
+
     </section>
 
 </main>
@@ -213,10 +225,14 @@
     const agreementTitleText = document.getElementById('agreement-title-text');
     const agreementTitleInput = document.getElementById('agreement-title-input');
     const AGREEMENTS_STORAGE_KEY = 'sistemaJoaquimAgreements';
-    const TASKS_STORAGE_KEY = 'sistemaJoaquimManagerTasks';
+    // Adicionadas chaves de storage específicas para as novas agendas
+    const TASKS_SIDEBAR_STORAGE_KEY = 'sistemaJoaquimManagerTasks'; 
+    const TASKS_AGENDA_STORAGE_KEY = 'sistemaJoaquimAgendaTasksRightPanel'; 
+    
     const managerAgendaListElement = document.getElementById('manager-agenda-list');
     const newTaskInput = document.getElementById('new-task-input');
-
+    // Novo elemento para a agenda do painel direito
+    const contentAgendaElement = document.getElementById('content-agenda'); 
 
     // --- Funções Mock ---
     function toggleSidebarMobile() {}
@@ -239,14 +255,15 @@
 
     window.onload = () => {
        renderAnnotations('postit'); 
-       renderAnnotations('dicas'); 
+       // renderAnnotations('dicas'); // Removido, substituído por renderAgendaTasks()
+       renderAgendaTasks(); // Novo renderizador para o painel direito
        calculateRemainingBusinessDays();
        renderAgreementList(); 
-       renderTasks();
+       renderTasks(); // Agenda da Sidebar (versão simples)
     }
     
     // ------------------------------------------------------------------
-    // JS: Funcionalidade de Gestão de Acordos e Arquivamento
+    // JS: Funcionalidade de Gestão de Acordos e Arquivamento (Mantido)
     // ------------------------------------------------------------------
 
     function getAgreements() {
@@ -260,7 +277,7 @@
     function toggleArchiveView() {
         showingArchived = !showingArchived;
         if (showingArchived) {
-            document.querySelector('button[onclick="toggleArchiveView()"]').textContent = 'VER ATIVOS';
+            document.querySelector('button[onclick="toggleArchiveView()"]').textContent = 'VER ARQUIVADOS';
             agreementListTitleElement.textContent = '📂 ACORDOS ARQUIVADOS';
         } else {
             document.querySelector('button[onclick="toggleArchiveView()"]').textContent = 'VER ARQUIVADOS';
@@ -303,7 +320,6 @@
         }
     }
 
-    // Função para iniciar a edição do título inline
     function editAgreementTitle() {
         if (currentAgreementId === null) return;
         agreementTitleText.style.display = 'none';
@@ -312,7 +328,6 @@
         agreementTitleInput.focus();
     }
 
-    // Função para salvar o título editado (onblur ou Enter)
     function saveAgreementTitle(newTitle) {
         agreementTitleText.style.display = 'inline';
         agreementTitleInput.style.display = 'none';
@@ -325,7 +340,7 @@
         if (agreementIndex > -1) {
             agreements[agreementIndex].title = newTitle.trim();
             saveAgreements(agreements);
-            loadAgreement(currentAgreementId); // Recarrega para atualizar a interface e a lista lateral
+            loadAgreement(currentAgreementId); 
         }
     }
 
@@ -417,15 +432,17 @@
     }
 
     // ------------------------------------------------------------------
-    // JS: Funcionalidade Agenda Diária do Gerente (Com Edição Inline)
+    // JS: Funcionalidade Agenda Diária do Gerente (Sidebar - Versão Simples)
     // ------------------------------------------------------------------
     
     function getTasks() {
-        const todayKey = `sistemaJoaquimTasks_${new Date().toDateString()}`;
+        // Usa a chave de storage da sidebar
+        const todayKey = `sistemaJoaquimTasks_${new Date().toDateString()}`; 
         return JSON.parse(localStorage.getItem(todayKey)) || [];
     }
 
     function saveTasks(tasks) {
+        // Usa a chave de storage da sidebar
         const todayKey = `sistemaJoaquimTasks_${new Date().toDateString()}`;
         localStorage.setItem(todayKey, JSON.stringify(tasks));
     }
@@ -493,7 +510,101 @@
 
 
     // ------------------------------------------------------------------
-    // Outras Funcionalidades (Contador de Dias Úteis e Anotações)
+    // JS: Funcionalidade Agenda do Gerente (Painel Direito - Versão Avançada)
+    // ------------------------------------------------------------------
+
+    function getAgendaTasks() {
+        // Usa a nova chave de storage para o painel direito
+        return JSON.parse(localStorage.getItem(TASKS_AGENDA_STORAGE_KEY)) || [];
+    }
+
+    function saveAgendaTasks(tasks) {
+        localStorage.setItem(TASKS_AGENDA_STORAGE_KEY, JSON.stringify(tasks));
+    }
+
+    function renderAgendaTasks() {
+        contentAgendaElement.innerHTML = '';
+        const tasks = getAgendaTasks();
+
+        tasks.forEach(task => {
+            const item = document.createElement('div');
+            // Usa a nova classe CSS 'type-agenda'
+            item.className = `note-item type-agenda`; 
+            item.id = `agenda-task-${task.id}`;
+           
+            item.innerHTML = `
+                <div id="view-${task.id}">
+                    <p><strong>Tarefa:</strong> ${task.text}</p>
+                    <small>Criado em: ${task.date}</small><br>
+                    <button class="btn-action" style="background: var(--accent); margin-top: 5px;" onclick="editAgendaTask(${task.id})">✏️ Editar</button>
+                    <button class="btn-action" style="background: #e74c3c; margin-top: 5px;" onclick="deleteAgendaTask(${task.id})">✖️ Excluir</button>
+                </div>
+                <div id="edit-${task.id}" style="display:none;">
+                    <textarea id="textarea-agenda-${task.id}" class="edit-mode-textarea">${task.text}</textarea>
+                    <button class="btn-action" style="background: var(--green);" onclick="saveEditedAgendaTask(${task.id})">Salvar</button>
+                    <button class="btn-action" style="background: #e74c3c;" onclick="cancelEditAgendaTask(${task.id})">Cancelar</button>
+                </div>
+            `;
+            contentAgendaElement.appendChild(item);
+        });
+    }
+
+    function addNewTaskRightPanel() {
+        const text = prompt("Digite a nova tarefa para a Agenda:");
+        if (text && text.trim() !== '') {
+            const tasks = getAgendaTasks();
+            const newTask = {
+                id: Date.now(),
+                text: text,
+                date: new Date().toLocaleString('pt-BR')
+            };
+            tasks.push(newTask);
+            saveAgendaTasks(tasks);
+            renderAgendaTasks();
+        }
+    }
+
+    function editAgendaTask(id) {
+        document.getElementById(`view-${id}`).style.display = 'none';
+        document.getElementById(`edit-${id}`).style.display = 'block';
+        document.getElementById(`textarea-agenda-${id}`).focus();
+    }
+
+    function saveEditedAgendaTask(id) {
+        const newText = document.getElementById(`textarea-agenda-${id}`).value;
+        if (newText.trim() === '') return;
+
+        const tasks = getAgendaTasks();
+        const taskIndex = tasks.findIndex(task => task.id === id);
+
+        if (taskIndex > -1) {
+            tasks[taskIndex].text = newText.trim();
+            saveAgendaTasks(tasks);
+            renderAgendaTasks();
+        }
+    }
+
+    function cancelEditAgendaTask(id) {
+        document.getElementById(`view-${id}`).style.display = 'block';
+        document.getElementById(`edit-${id}`).style.display = 'none';
+        const tasks = getAgendaTasks();
+        const originalTask = tasks.find(task => task.id === id);
+        if (originalTask) {
+            document.getElementById(`textarea-agenda-${id}`).value = originalTask.text;
+        }
+    }
+
+    function deleteAgendaTask(id) {
+        if (!confirm("Tem certeza que deseja excluir esta tarefa?")) return;
+        let tasks = getAgendaTasks();
+        tasks = tasks.filter(task => task.id !== id);
+        saveAgendaTasks(tasks);
+        renderAgendaTasks();
+    }
+    
+
+    // ------------------------------------------------------------------
+    // Outras Funcionalidades (Contador de Dias Úteis e Post-its)
     // ------------------------------------------------------------------
     
     function calculateRemainingBusinessDays() {
@@ -523,7 +634,10 @@
         }
     }
 
+    // Funções de Post-it (Agora apenas para o tipo 'postit')
+
     function addNewNotePrompt(type) {
+        if (type !== 'postit') return;
         const text = prompt(`Digite sua nova anotação (${type}):`);
         if (text && text.trim() !== '') {
             saveAnnotation(type, text);
@@ -531,6 +645,8 @@
     }
 
     function saveAnnotation(type, text, id = null) {
+        if (type !== 'postit') return;
+
         const STORAGE_KEY = `sistemaJoaquimNotes_${type}`;
         let annotations = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
         
@@ -553,20 +669,18 @@
     }
 
     function renderAnnotations(type) {
+        if (type !== 'postit') return;
+
         const STORAGE_KEY = `sistemaJoaquimNotes_${type}`;
         const annotations = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-        const contentAreaId = type === 'postit' ? 'content-postit' : 'content-dicas';
-        const contentArea = document.getElementById(contentAreaId);
+        const contentArea = document.getElementById('content-postit');
         contentArea.innerHTML = '';
 
         annotations.forEach(annotation => {
             const item = document.createElement('div');
             item.className = `note-item type-${type}`; 
             item.id = `note-${type}-${annotation.id}`;
-            
-            if (type === 'postit') {
-                 item.setAttribute('onclick', `editNote('${type}', ${annotation.id})`);
-            }
+            item.setAttribute('onclick', `editNote('${type}', ${annotation.id})`);
            
             item.innerHTML = `
                 <div id="view-${annotation.id}">
@@ -585,6 +699,8 @@
     }
 
     function deleteAnnotation(type, id) {
+        if (type !== 'postit') return;
+
         const STORAGE_KEY = `sistemaJoaquimNotes_${type}`;
         let annotations = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
         annotations = annotations.filter(annotation => annotation.id !== id);
@@ -593,23 +709,31 @@
     }
 
     function focusPanel(type) {
-        const panelId = type === 'postit' ? 'content-postit' : 'content-dicas';
+        // Atualizado para incluir o novo ID 'content-agenda'
+        const panelId = type === 'postit' ? 'content-postit' : 'content-agenda';
         const panel = document.getElementById(panelId);
-        panel.scrollIntoView({ behavior: 'smooth' });
+        if (panel) {
+            panel.scrollIntoView({ behavior: 'smooth' });
+        }
     }
 
     function editNote(type, id) {
+        if (type !== 'postit') return;
+
         document.getElementById(`view-${id}`).style.display = 'none';
         document.getElementById(`edit-${id}`).style.display = 'block';
         document.getElementById(`textarea-${id}`).focus();
     }
 
     function saveEditedNote(type, id) {
+        if (type !== 'postit') return;
         const newText = document.getElementById(`textarea-${id}`).value;
         saveAnnotation(type, newText, id);
     }
 
     function cancelEdit(type, id) {
+        if (type !== 'postit') return;
+
         document.getElementById(`view-${id}`).style.display = 'block';
         document.getElementById(`edit-${id}`).style.display = 'none';
         const annotations = JSON.parse(localStorage.getItem(`sistemaJoaquimNotes_${type}`)) || [];
