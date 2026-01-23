@@ -33,7 +33,12 @@
         
         h4 { font-size: 0.65rem; color: #666; text-transform: uppercase; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
         .exame-btn { background: white; border: 1px solid #ddd; padding: 10px; border-radius: 4px; cursor: pointer; text-align: left; font-size: 0.75rem; font-weight: bold; margin-bottom: 4px; }
+        .exame-btn:hover { background-color: #f1f1f1; }
+
         .exame-btn.active { background: var(--accent); color: white; }
+        .exame-btn.archived { background: #ccc; color: #666; font-style: italic; }
+        .exame-btn.archived:hover { background: #bbb; }
+
 
         .mural-item { padding: 8px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 8px; border-left: 5px solid; background: white; box-shadow: 2px 2px 5px rgba(0,0,0,0.05); cursor: pointer; }
 
@@ -69,6 +74,12 @@
         }
         
         .editor-actions { display: flex; gap: 5px; }
+        
+        /* Estilos da nova agenda */
+        .agenda-task { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #ddd; }
+        .agenda-task input[type="text"] { border: none; background: transparent; width: calc(100% - 30px); font-size: 0.8rem; }
+        .agenda-task button { background: none; border: none; cursor: pointer; color: var(--green); }
+
 
         @media (max-width: 1024px) {
             #resizer { display: none; }
@@ -101,21 +112,33 @@
     <aside class="sidebar" id="sidebar-main">
         <div class="sidebar-content">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
-                <h4>📂 ACORDOS ATIVOS</h4>
-                <button onclick="toggleSidebarPC()" class="pc-only" style="border:none; background:none; cursor:pointer; color:red; font-size:0.6rem;">FECHAR</button>
+                <h4 id="agreement-list-title">📂 ACORDOS ATIVOS</h4>
+                <button onclick="toggleSidebarPC()" class="pc-only" style="border:none; background:none; cursor:pointer; color:red; font-size:0.6rem;">Ocultar</button>
             </div>
-            <!-- Botão Novo Acordo -->
-            <button class="btn-action" style="background:var(--green); width:100%; margin-bottom: 15px;" onclick="createNewAgreement()">+ NOVO ACORDO</button>
+            
+            <button class="btn-action" style="background:var(--green); width:100%; margin-bottom: 5px;" onclick="createNewAgreement()">+ NOVO ACORDO</button>
+            <button class="btn-action" style="background:#6c757d; width:100%; margin-bottom: 15px;" onclick="toggleArchiveView()">VER ARQUIVADOS</button>
 
-            <!-- Lista de Acordos Ativos (ex-lista-exames) -->
             <div id="lista-exames"></div> 
             
             <h4 style="margin-top:15px">💡 MURAL RÁPIDO</h4>
             <div id="mural-fixacao"></div>
 
+            <!-- Nova Seção da Agenda -->
+            <h4 style="margin-top:15px">📅 AGENDA DIÁRIA DO GERENTE</h4>
+            <div id="manager-agenda-list">
+                <!-- Tarefas aqui -->
+            </div>
+            <div style="display: flex; gap: 5px; margin-top: 8px;">
+                <input type="text" id="new-task-input" placeholder="Nova tarefa..." style="flex: 1; padding: 5px; border-radius: 4px; border: 1px solid #ccc;">
+                <button class="btn-action" style="background: var(--accent);" onclick="addTask()">ADD</button>
+            </div>
+            <!-- Fim Nova Seção da Agenda -->
+
+
             <h4 style="margin-top:15px">💾 DADOS</h4>
             <button class="btn-action" style="background:#27ae60; width:100%" onclick="fazerBackup()">EXPORTAR</button>
-            <button class="btn-action" style="background:#2980b9; width:100%; margin-top:5px" onclick="document.getElementById('input-file").click()">IMPORTAR</button>
+            <button class="btn-action" style="background:#2980b9; width:100%; margin-top:5px" onclick="document.getElementById('input-file').click()">IMPORTAR</button>
             <input type="file" id="input-file" style="display:none" onchange="importarBackup(this)">
         </div>
     </aside>
@@ -169,10 +192,15 @@
 <script>
     // --- Variáveis Globais de Controle ---
     let currentAgreementId = null;
+    let showingArchived = false; 
     const agreementListElement = document.getElementById('lista-exames');
+    const agreementListTitleElement = document.getElementById('agreement-list-title');
     const agreementTextArea = document.getElementById('area-peca');
     const agreementLabel = document.getElementById('label-exame');
     const AGREEMENTS_STORAGE_KEY = 'sistemaJoaquimAgreements';
+    const TASKS_STORAGE_KEY = 'sistemaJoaquimManagerTasks';
+    const managerAgendaListElement = document.getElementById('manager-agenda-list');
+    const newTaskInput = document.getElementById('new-task-input');
 
 
     // --- Funções Mock ---
@@ -198,7 +226,8 @@
        renderAnnotations('postit'); 
        renderAnnotations('dicas'); 
        calculateRemainingBusinessDays();
-       renderAgreementList(); // Carrega a lista de acordos
+       renderAgreementList(); 
+       renderTasks(); // Carrega a agenda
     }
     
     // ------------------------------------------------------------------
@@ -213,9 +242,18 @@
         localStorage.setItem(AGREEMENTS_STORAGE_KEY, JSON.stringify(agreements));
     }
 
-    /**
-     * Cria um novo acordo através de um prompt.
-     */
+    function toggleArchiveView() {
+        showingArchived = !showingArchived;
+        if (showingArchived) {
+            document.querySelector('button[onclick="toggleArchiveView()"]').textContent = 'VER ATIVOS';
+            agreementListTitleElement.textContent = '📂 ACORDOS ARQUIVADOS';
+        } else {
+            document.querySelector('button[onclick="toggleArchiveView()"]').textContent = 'VER ARQUIVADOS';
+            agreementListTitleElement.textContent = '📂 ACORDOS ATIVOS';
+        }
+        renderAgreementList();
+    }
+
     function createNewAgreement() {
         const title = prompt("Digite o nome do novo acordo:");
         if (title && title.trim() !== '') {
@@ -228,14 +266,12 @@
             };
             agreements.push(newAgreement);
             saveAgreements(agreements);
-            renderAgreementList();
-            loadAgreement(newAgreement.id); // Carrega o novo acordo automaticamente
+            if (showingArchived) toggleArchiveView();
+            else renderAgreementList();
+            loadAgreement(newAgreement.id); 
         }
     }
 
-    /**
-     * Salva o conteúdo da textarea no acordo atual.
-     */
     function salvarAlteracoes() {
         if (currentAgreementId === null) {
             alert("Selecione um acordo para salvar as alterações.");
@@ -252,9 +288,6 @@
         }
     }
 
-    /**
-     * Move o acordo atual para o status 'arquivado'.
-     */
     function arquivarAcordo() {
         if (currentAgreementId === null) {
             alert("Selecione um acordo para arquivar.");
@@ -273,7 +306,6 @@
             saveAgreements(agreements);
             alert("Acordo arquivado com sucesso!");
             
-            // Limpa a área de edição e atualiza a lista lateral
             currentAgreementId = null;
             agreementTextArea.value = '';
             agreementLabel.textContent = '📍 NENHUM ACORDO SELECIONADO';
@@ -281,38 +313,52 @@
         }
     }
 
-    /**
-     * Renderiza a lista de acordos ATIVOS na barra lateral.
-     */
+    function restaurarAcordo(id) {
+        const agreements = getAgreements();
+        const agreementIndex = agreements.findIndex(a => a.id === id);
+
+        if (agreementIndex > -1) {
+            agreements[agreementIndex].status = 'ativo';
+            saveAgreements(agreements);
+            alert("Acordo restaurado para a lista de ativos.");
+            renderAgreementList(); 
+        }
+    }
+
     function renderAgreementList() {
         agreementListElement.innerHTML = '';
         const agreements = getAgreements();
-        const activeAgreements = agreements.filter(a => a.status === 'ativo');
+        
+        const filteredAgreements = agreements.filter(a => showingArchived ? a.status === 'arquivado' : a.status === 'ativo');
 
-        if (activeAgreements.length === 0) {
-            agreementListElement.innerHTML = '<p style="font-size: 0.7rem; padding: 10px;">Nenhum acordo ativo.</p>';
+        if (filteredAgreements.length === 0) {
+            agreementListElement.innerHTML = `<p style="font-size: 0.7rem; padding: 10px;">Nenhum acordo ${showingArchived ? 'arquivado' : 'ativo'} encontrado.</p>`;
             return;
         }
 
-        activeAgreements.forEach(agreement => {
+        filteredAgreements.forEach(agreement => {
             const button = document.createElement('button');
-            button.className = 'exame-btn';
+            button.className = `exame-btn ${showingArchived ? 'archived' : ''}`;
             button.textContent = agreement.title;
-            // Usamos uma arrow function para passar o ID corretamente no onclick
             button.onclick = () => loadAgreement(agreement.id); 
             
-            // Se este for o acordo atualmente carregado, marque-o como ativo visualmente
-            if (currentAgreementId === agreement.id) {
-                button.classList.add('active');
+            if (showingArchived) {
+                const restoreButton = document.createElement('button');
+                restoreButton.textContent = 'Restaurar';
+                restoreButton.className = 'btn-action';
+                restoreButton.style.background = 'var(--green)';
+                restoreButton.style.marginLeft = '10px';
+                restoreButton.onclick = (e) => {
+                    e.stopPropagation(); 
+                    restaurarAcordo(agreement.id);
+                };
+                button.appendChild(restoreButton);
             }
             
             agreementListElement.appendChild(button);
         });
     }
 
-    /**
-     * Carrega um acordo específico na área de edição principal.
-     */
     function loadAgreement(id) {
         const agreements = getAgreements();
         const agreement = agreements.find(a => a.id === id);
@@ -321,10 +367,8 @@
             currentAgreementId = id;
             agreementTextArea.value = agreement.content;
             agreementLabel.textContent = `📍 EDITANDO: ${agreement.title}`;
-            // Remove a classe 'active' de todos os botões e adiciona ao clicado
             document.querySelectorAll('.exame-btn').forEach(btn => btn.classList.remove('active'));
-            // Encontra o botão específico que corresponde ao ID e adiciona a classe 'active'
-            const currentButton = document.querySelector(`#lista-exames .exame-btn[onclick="loadAgreement(${id})"]`);
+            const currentButton = document.querySelector(`#lista-exames .exame-btn[onclick*="loadAgreement(${id})"]`);
             if (currentButton) {
                 currentButton.classList.add('active');
             }
@@ -332,9 +376,73 @@
     }
 
     // ------------------------------------------------------------------
+    // JS: Funcionalidade Agenda Diária do Gerente
+    // ------------------------------------------------------------------
+    
+    function getTasks() {
+        // As tarefas são específicas do dia atual
+        const todayKey = `sistemaJoaquimTasks_${new Date().toDateString()}`;
+        return JSON.parse(localStorage.getItem(todayKey)) || [];
+    }
+
+    function saveTasks(tasks) {
+        const todayKey = `sistemaJoaquimTasks_${new Date().toDateString()}`;
+        localStorage.setItem(todayKey, JSON.stringify(tasks));
+    }
+
+    function renderTasks() {
+        managerAgendaListElement.innerHTML = '';
+        const tasks = getTasks();
+
+        tasks.forEach(task => {
+            const taskDiv = document.createElement('div');
+            taskDiv.className = 'agenda-task';
+            
+            // Usamos input type="text" para permitir edição inline fácil
+            taskDiv.innerHTML = `
+                <input type="text" id="task-input-${task.id}" value="${task.text}" onchange="updateTaskText(${task.id}, this.value)" />
+                <button onclick="deleteTask(${task.id})" title="Marcar como concluída/Excluir">✔️</button>
+            `;
+            managerAgendaListElement.appendChild(taskDiv);
+        });
+    }
+
+    function addTask() {
+        const text = newTaskInput.value.trim();
+        if (text === '') return;
+
+        const tasks = getTasks();
+        const newTask = {
+            id: Date.now(),
+            text: text
+        };
+        tasks.push(newTask);
+        saveTasks(tasks);
+        newTaskInput.value = '';
+        renderTasks();
+    }
+
+    function updateTaskText(id, newText) {
+        const tasks = getTasks();
+        const taskIndex = tasks.findIndex(task => task.id === id);
+        if (taskIndex > -1) {
+            tasks[taskIndex].text = newText;
+            saveTasks(tasks);
+        }
+    }
+
+    function deleteTask(id) {
+        let tasks = getTasks();
+        tasks = tasks.filter(task => task.id !== id);
+        saveTasks(tasks);
+        renderTasks();
+    }
+
+
+    // ------------------------------------------------------------------
     // Outras Funcionalidades (Contador de Dias Úteis e Anotações)
     // ------------------------------------------------------------------
-
+    
     function calculateRemainingBusinessDays() {
         const today = new Date();
         const year = today.getFullYear();
