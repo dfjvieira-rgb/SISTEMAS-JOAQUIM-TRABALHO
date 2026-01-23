@@ -16,7 +16,6 @@
         
         header { background-color: var(--primary); color: white; height: var(--header-h); padding: 0 15px; display: flex; justify-content: space-between; align-items: center; z-index: 1000; }
         
-        /* Ajuste para agrupar botões na esquerda */
         .header-left { display: flex; align-items: center; gap: 10px; } 
 
         .nav-group { display: flex; gap: 5px; }
@@ -55,10 +54,20 @@
         .type-postit { background: var(--yellow); }
         .type-dicas { background: var(--green); color: white; }
         
-        /* Estilos para o modo de edição */
         .edit-mode-textarea { width: 100%; height: 100px; padding: 5px; margin-bottom: 5px; }
         .edit-mode-actions { display: block; }
         .view-mode-actions { display: none; }
+
+        /* Estilo para o novo contador */
+        #business-days-counter {
+            font-family: monospace;
+            font-size: 1rem;
+            color: var(--yellow);
+            font-weight: bold;
+            padding: 5px 10px;
+            background: #34495e;
+            border-radius: 4px;
+        }
 
         @media (max-width: 1024px) {
             #resizer { display: none; }
@@ -80,7 +89,9 @@
         <button class="dropbtn btn-postit" onclick="focusPanel('postit')">📌 Post-its</button>
         <button class="dropbtn btn-dicas" onclick="focusPanel('dicas')">👩‍🏫 Dicas</button>
     </div>
+    <!-- Contador adicionado aqui na direita -->
     <div class="nav-group">
+        <span id="business-days-counter"></span>
     </div>
 </header>
 
@@ -100,7 +111,7 @@
 
             <h4 style="margin-top:15px">💾 DADOS</h4>
             <button class="btn-action" style="background:#27ae60; width:100%" onclick="fazerBackup()">EXPORTAR</button>
-            <button class="btn-action" style="background:#2980b9; width:100%; margin-top:5px" onclick="document.getElementById('input-file").click()">IMPORTAR</button>
+            <button class="btn-action" style="background:#2980b9; width:100%; margin-top:5px" onclick="document.getElementById('input-file').click()">IMPORTAR</button>
             <input type="file" id="input-file" style="display:none" onchange="importarBackup(this)">
         </div>
     </aside>
@@ -122,7 +133,6 @@
 
     <section class="annotations-section" id="right-panel">
         
-        <!-- Painel de Post-its (Folha de Caderno) com edição habilitada -->
         <div class="annotation-box">
             <div class="annotation-header">
                 <span>📌 POST-ITS (FOLHA DE CADERNO)</span>
@@ -133,7 +143,6 @@
             </div>
         </div>
 
-        <!-- Painel de Dicas (Padrão Resposta) - Sem edição inline, apenas visualização/exclusão -->
         <div class="annotation-box">
             <div class="annotation-header">
                 <span>👩‍🏫 DICAS (PADRÃO RESPOSTA)</span>
@@ -148,7 +157,7 @@
 </main>
 
 <script>
-    // --- Funções Mock (mantidas para evitar erros de referência) ---
+    // --- Funções Mock ---
     function toggleSidebarMobile() {}
     function toggleSidebarPC() {
         const sidebar = document.getElementById('sidebar-main');
@@ -169,15 +178,48 @@
     window.onload = () => {
        renderAnnotations('postit'); 
        renderAnnotations('dicas'); 
+       calculateRemainingBusinessDays(); // Inicializa o contador
     }
     
+    // ------------------------------------------------------------------
+    // JS: Funcionalidade de Contador de Dias Úteis
+    // ------------------------------------------------------------------
+    function calculateRemainingBusinessDays() {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth();
+        // Último dia do mês (passando 0 como dia, JS volta 1 dia do próximo mês)
+        const lastDayOfMonth = new Date(year, month + 1, 0); 
+        
+        let businessDaysRemaining = 0;
+        let currentDate = new Date(today);
+
+        // Loop do dia atual até o último dia do mês
+        while (currentDate <= lastDayOfMonth) {
+            const dayOfWeek = currentDate.getDay();
+            // getDay() retorna 0 para Domingo e 6 para Sábado
+            if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                businessDaysRemaining++;
+            }
+            // Avança para o próximo dia
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        // Subtrai o dia de hoje da contagem se ele for um dia útil (pois a contagem é "quantos faltam")
+        if (today.getDay() !== 0 && today.getDay() !== 6) {
+            businessDaysRemaining -= 1;
+        }
+
+        const counterElement = document.getElementById('business-days-counter');
+        if (counterElement) {
+            counterElement.textContent = `Faltam ${businessDaysRemaining} dias úteis no mês`;
+        }
+    }
+
     // ------------------------------------------------------------------
     // JS: Funcionalidade de Anotações em Painéis Fixos com Edição Inline
     // ------------------------------------------------------------------
 
-    /**
-     * Pede ao usuário uma nova anotação e salva.
-     */
     function addNewNotePrompt(type) {
         const text = prompt(`Digite sua nova anotação (${type}):`);
         if (text && text.trim() !== '') {
@@ -185,21 +227,16 @@
         }
     }
 
-    /**
-     * Salva uma nova anotação no LocalStorage.
-     */
     function saveAnnotation(type, text, id = null) {
         const STORAGE_KEY = `sistemaJoaquimNotes_${type}`;
         let annotations = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
         
         if (id) {
-            // Se o ID existe, atualizamos a anotação existente
             const index = annotations.findIndex(note => note.id === id);
             if (index > -1) {
                 annotations[index].text = text;
             }
         } else {
-            // Caso contrário, criamos uma nova anotação
             const newAnnotation = {
                 id: Date.now(),
                 text: text,
@@ -212,9 +249,6 @@
         renderAnnotations(type);
     }
 
-    /**
-     * Renderiza as anotações salvas na interface para um tipo específico.
-     */
     function renderAnnotations(type) {
         const STORAGE_KEY = `sistemaJoaquimNotes_${type}`;
         const annotations = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
@@ -227,7 +261,6 @@
             item.className = `note-item type-${type}`; 
             item.id = `note-${type}-${annotation.id}`;
             
-            // Adicionamos o listener de clique para edição APENAS nos Post-its
             if (type === 'postit') {
                  item.setAttribute('onclick', `editNote('${type}', ${annotation.id})`);
             }
@@ -238,7 +271,6 @@
                     <small>Criado em: ${annotation.date}</small>
                     <button class="note-delete" onclick="event.stopPropagation(); deleteAnnotation('${type}', ${annotation.id})">✖️</button>
                 </div>
-                <!-- Área de edição oculta inicialmente -->
                 <div id="edit-${annotation.id}" style="display:none;">
                     <textarea id="textarea-${annotation.id}" class="edit-mode-textarea">${annotation.text}</textarea>
                     <button class="btn-action" style="background: var(--green);" onclick="event.stopPropagation(); saveEditedNote('${type}', ${annotation.id})">Salvar</button>
@@ -249,9 +281,6 @@
         });
     }
 
-    /**
-     * Remove uma anotação específica pelo ID e tipo.
-     */
     function deleteAnnotation(type, id) {
         const STORAGE_KEY = `sistemaJoaquimNotes_${type}`;
         let annotations = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
@@ -260,35 +289,26 @@
         renderAnnotations(type); 
     }
 
-    /**
-     * Função para focar visualmente o painel quando clicado no menu superior.
-     */
     function focusPanel(type) {
         const panelId = type === 'postit' ? 'content-postit' : 'content-dicas';
         const panel = document.getElementById(panelId);
         panel.scrollIntoView({ behavior: 'smooth' });
     }
 
-    // --- Funções de Edição Inline (Novas) ---
     function editNote(type, id) {
-        // Oculta a visualização e mostra a área de edição para o ID específico
         document.getElementById(`view-${id}`).style.display = 'none';
         document.getElementById(`edit-${id}`).style.display = 'block';
-        // Foca na textarea automaticamente
         document.getElementById(`textarea-${id}`).focus();
     }
 
     function saveEditedNote(type, id) {
         const newText = document.getElementById(`textarea-${id}`).value;
-        saveAnnotation(type, newText, id); // Usa a função saveAnnotation com o ID
-        // renderAnnotations(type) é chamado dentro de saveAnnotation, o que atualiza a visualização automaticamente.
+        saveAnnotation(type, newText, id);
     }
 
     function cancelEdit(type, id) {
-        // Mostra a visualização e oculta a área de edição
         document.getElementById(`view-${id}`).style.display = 'block';
         document.getElementById(`edit-${id}`).style.display = 'none';
-        // Opcional: recarrega o texto original na textarea caso o usuário cancele
         const annotations = JSON.parse(localStorage.getItem(`sistemaJoaquimNotes_${type}`)) || [];
         const originalNote = annotations.find(note => note.id === id);
         if (originalNote) {
