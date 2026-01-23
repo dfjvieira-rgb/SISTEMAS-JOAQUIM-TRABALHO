@@ -55,13 +55,9 @@
         #btn-reopen { position: fixed; left: 0; top: 80px; background: var(--primary); color: white; border: none; padding: 10px; border-radius: 0 5px 5px 0; cursor: pointer; display: none; z-index: 900; }
 
         .note-item { padding: 8px; border-radius: 4px; margin-bottom: 8px; font-size: 0.75rem; position: relative; background: white; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); }
-        /* Removi o cursor: pointer padrão para a agenda, pois a edição agora é via botão */
-        /* .note-item { cursor: pointer; } */ 
-
-
         .note-delete { position: absolute; right: 5px; top: 5px; background: none; border: none; color: red; cursor: pointer; }
         .type-postit { background: var(--yellow); }
-        /* Adicionado novo estilo para a Agenda do Painel Direito */
+        /* Estilo para a Agenda do Painel Direito */
         .type-agenda { 
             background: var(--purple); 
             color: white; 
@@ -112,7 +108,7 @@
     <div class="header-left">
         <button id="mobile-toggle" style="background:#34495e; color:white; border:none; padding:8px; border-radius:4px; display:none;" onclick="toggleSidebarMobile()">☰ MENU</button>
         <button class="dropbtn btn-postit" onclick="focusPanel('postit')">📌 Post-its</button>
-        <!-- Nome alterado para refletir a nova agenda -->
+        <!-- Botão alterado para refletir a nova agenda -->
         <button class="dropbtn btn-dicas" onclick="focusPanel('agenda')">📅 Agenda</button>
     </div>
     <div class="nav-group">
@@ -167,7 +163,8 @@
             <!-- Área do Título Editável -->
             <span id="label-exame" style="font-size:0.7rem; font-weight:bold;">
                 <span id="agreement-title-prefix">📍</span>
-                <span id="agreement-title-text" onclick="editAgreementTitle()">NENHUM ACORDO SELECIONADO</span>
+                <!-- Texto padrão alterado para "APOIO NO CONEXÃO" -->
+                <span id="agreement-title-text" onclick="editAgreementTitle()">APOIO NO CONEXÃO</span>
                 <input type="text" id="agreement-title-input" 
                        onblur="saveAgreementTitle(this.value)" 
                        onkeydown="if(event.key === 'Enter') saveAgreementTitle(this.value)" />
@@ -213,7 +210,6 @@
     </section>
 
 </main>
-
 <script>
     // --- Variáveis Globais de Controle ---
     let currentAgreementId = null;
@@ -255,7 +251,6 @@
 
     window.onload = () => {
        renderAnnotations('postit'); 
-       // renderAnnotations('dicas'); // Removido, substituído por renderAgendaTasks()
        renderAgendaTasks(); // Novo renderizador para o painel direito
        calculateRemainingBusinessDays();
        renderAgreementList(); 
@@ -364,7 +359,8 @@
             
             currentAgreementId = null;
             agreementTextArea.value = '';
-            agreementTitleText.textContent = 'NENHUM ACORDO SELECIONADO';
+            // Texto padrão atualizado
+            agreementTitleText.textContent = 'APOIO NO CONEXÃO'; 
             renderAgreementList();
         }
     }
@@ -436,13 +432,11 @@
     // ------------------------------------------------------------------
     
     function getTasks() {
-        // Usa a chave de storage da sidebar
         const todayKey = `sistemaJoaquimTasks_${new Date().toDateString()}`; 
         return JSON.parse(localStorage.getItem(todayKey)) || [];
     }
 
     function saveTasks(tasks) {
-        // Usa a chave de storage da sidebar
         const todayKey = `sistemaJoaquimTasks_${new Date().toDateString()}`;
         localStorage.setItem(todayKey, JSON.stringify(tasks));
     }
@@ -514,7 +508,6 @@
     // ------------------------------------------------------------------
 
     function getAgendaTasks() {
-        // Usa a nova chave de storage para o painel direito
         return JSON.parse(localStorage.getItem(TASKS_AGENDA_STORAGE_KEY)) || [];
     }
 
@@ -528,7 +521,6 @@
 
         tasks.forEach(task => {
             const item = document.createElement('div');
-            // Usa a nova classe CSS 'type-agenda'
             item.className = `note-item type-agenda`; 
             item.id = `agenda-task-${task.id}`;
            
