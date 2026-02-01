@@ -1,739 +1,287 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SISTEMA JOAQUIM - ACORDO DE TRABALHO</title>
-    <style>
-        :root { 
-            --primary: #1a252f; --accent: #3498db; --bg: #f4f7f6; 
-            --orange: #f39c12; --green: #27ae60; --purple: #8e44ad; 
-            --yellow: #f1c40f; --text: #2c3e50; --header-h: 60px; 
-            --sidebar-w: 260px;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        
-        header { background-color: var(--primary); color: white; height: var(--header-h); padding: 0 15px; display: flex; justify-content: space-between; align-items: center; z-index: 1000; }
-        
-        .header-left { display: flex; align-items: center; gap: 10px; } 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>JOAQUIM ELITE 2026 - COCKPIT FGV MODE</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #0f172a; --gold: #fbbf24; --bg-paper: #cbd5e1;
+            --paper-color: #ffffff; --text-color: #1e293b; --line-color: #d1d5db;
+            --mentoria: #a855f7; --header-h: 60px; --sidebar-w: 80px;
+        }
+        body.dark-mode { --primary: #020617; --gold: #f59e0b; --bg-paper: #0f172a; --paper-color: #1e293b; --text-color: #f8fafc; --line-color: #334155; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: var(--primary); height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+        
+        header { background: var(--primary); height: var(--header-h); padding: 0 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--gold); z-index: 2000; }
 
-        .nav-group { display: flex; gap: 5px; }
-        .dropbtn { color: white; padding: 8px 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.65rem; text-transform: uppercase; }
-        .btn-postit { background-color: var(--yellow); color: #333; }
-        .btn-dicas { background-color: var(--purple); } /* Agora é o botão da agenda */
+        main { display: flex; flex: 1; overflow: hidden; position: relative; }
 
-        .dropdown-content { display: none; } 
+        /* SIDEBAR */
+        .sidebar { width: var(--sidebar-w); background: #1e293b; display: flex; flex-direction: column; gap: 8px; padding: 10px; border-right: 1px solid rgba(255,255,255,0.1); z-index: 1001; overflow-y: auto; scrollbar-width: none; }
+        
+        #radar-container { background: #000; border: 2px solid var(--gold); border-radius: 6px; padding: 5px; text-align: center; min-height: 65px; display: flex; flex-direction: column; justify-content: center; transition: 0.3s; }
+        #radar-status { font-size: 0.55rem; color: #fff; font-weight: 900; line-height: 1.2; text-transform: uppercase; }
+        .radar-blink { animation: blink 1.5s infinite; color: var(--gold); }
+        @keyframes blink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
 
-        main { display: flex; flex: 1; overflow: hidden; position: relative; }
-        
-        .sidebar { width: var(--sidebar-w); background: #eaeff2; border-right: 1px solid #ccc; display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0; transition: width 0.3s; }
-        .sidebar.collapsed { width: 0; overflow: hidden; border: none; }
-        .sidebar-content { padding: 12px; display: flex; flex-direction: column; gap: 15px; }
-        
-        h4 { font-size: 0.65rem; color: #666; text-transform: uppercase; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
-        .exame-btn { background: white; border: 1px solid #ddd; padding: 10px; border-radius: 4px; cursor: pointer; text-align: left; font-size: 0.75rem; font-weight: bold; margin-bottom: 4px; }
-        .exame-btn:hover { background-color: #f1f1f1; }
+        /* TOP FOLHA INDICATOR */
+        #identificador-peca {
+            width: 100%; padding: 15px; background: #f8fafc;
+            border-bottom: 3px double var(--line-color); text-align: center;
+            font-weight: 900; font-size: 1.3rem; color: #64748b;
+            text-transform: uppercase; letter-spacing: 3px; transition: 0.3s;
+        }
 
-        .exame-btn.active { background: var(--accent); color: white; }
-        .exame-btn.archived { background: #ccc; color: #666; font-style: italic; }
-        .exame-btn.archived:hover { background: #bbb; }
+        .btn-side { width: 100%; min-height: 44px; border-radius: 8px; border: none; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.1rem; cursor: pointer; flex-shrink: 0; transition: 0.2s; }
+        .btn-side:active { transform: scale(0.9); }
 
+        /* EDITOR (SIMULADOR DE LINHAS) */
+        .editor-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; align-items: center; padding: 20px; background: var(--bg-paper); -webkit-overflow-scrolling: touch; }
+        .paper { background: var(--paper-color); width: 100%; max-width: 850px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); padding: 0 0 40px 0; margin-bottom: 50px; position: relative; }
+        .linha-wrapper { display: flex; width: 100%; border-bottom: 1px solid var(--line-color); }
+        .linha-num { width: 45px; font-size: 0.7rem; color: #64748b; text-align: center; padding-top: 10px; border-right: 1px solid var(--line-color); background: rgba(0,0,0,0.02); flex-shrink: 0; }
+        
+        .linha-folha { 
+            flex: 1; height: 35px; border: none; outline: none; background: transparent; 
+            padding: 0 15px; font-size: 18px; 
+            font-family: 'Courier New', Courier, monospace;
+            color: var(--text-color); width: 100%; 
+            letter-spacing: 0.5px;
+        }
 
-        .mural-item { padding: 8px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 8px; border-left: 5px solid; background: white; box-shadow: 2px 2px 5px rgba(0,0,0,0.05); cursor: pointer; }
+        /* MODAIS */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 3000; align-items: center; justify-content: center; }
+        .modal-body { background: white; width: 90%; max-width: 450px; padding: 25px; border-radius: 20px; border: 3px solid var(--gold); max-height: 85vh; overflow-y: auto; }
+        .opt-btn { width: 100%; padding: 15px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #ddd; font-weight: 800; cursor: pointer; background: #f1f5f9; color: #0f172a; text-align: center; }
 
-        .work-section { width: 40%; display: flex; flex-direction: column; background: white; flex-shrink: 0; border-right: 1px solid #ccc; }
-        #area-peca { flex: 1; padding: 25px; border: none; font-family: 'Courier New', monospace; font-size: 16px; line-height: 1.6; outline: none; background-image: linear-gradient(#f1f1f1 1px, transparent 1px); background-size: 100% 1.6em; resize: none; }
-        #resizer { width: 10px; background: #cbd5e0; cursor: col-resize; z-index: 10; border-left: 1px solid #a0aec0; }
+        /* PDF VIEW */
+        #pdf-split-view { display: none; width: 48%; background: #333; border-left: 4px solid var(--gold); height: 100%; position: relative; z-index: 1002; }
+        #pdf-split-view.active { display: block; }
+        .btn-close-pdf { position: absolute; top: 15px; left: -40px; background: var(--gold); border: none; width: 40px; height: 40px; border-radius: 8px 0 0 8px; cursor: pointer; }
 
-        .annotations-section { flex: 1; background: #525659; display: flex; flex-direction: column; gap: 10px; padding: 10px; overflow-y: auto; }
-        .annotation-box { background: #fff; border-radius: 4px; overflow: hidden; flex: 1; display: flex; flex-direction: column; }
-        .annotation-header { padding: 6px 10px; color: white; font-size: 0.7rem; display: flex; justify-content: space-between; background: #2c3e50; }
-        .annotation-content { padding: 10px; overflow-y: auto; flex: 1; }
-        .btn-action { border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-weight: bold; color: white; font-size: 0.7rem; text-transform: uppercase; }
-        
-        #btn-reopen { position: fixed; left: 0; top: 80px; background: var(--primary); color: white; border: none; padding: 10px; border-radius: 0 5px 5px 0; cursor: pointer; display: none; z-index: 900; }
-
-        .note-item { padding: 8px; border-radius: 4px; margin-bottom: 8px; font-size: 0.75rem; position: relative; background: white; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); }
-        .note-delete { position: absolute; right: 5px; top: 5px; background: none; border: none; color: red; cursor: pointer; }
-        .type-postit { background: var(--yellow); }
-        /* Estilo para a Agenda do Painel Direito */
-        .type-agenda { 
-            background: var(--purple); 
-            color: white; 
-        }
-        
-        .edit-mode-textarea { width: 100%; height: 100px; padding: 5px; margin-bottom: 5px; }
-        .edit-mode-actions { display: block; }
-        .view-mode-actions { display: none; }
-
-        #business-days-counter {
-            font-family: monospace;
-            font-size: 1rem;
-            color: var(--yellow);
-            font-weight: bold;
-            padding: 5px 10px;
-            background: #34495e;
-            border-radius: 4px;
-        }
-        
-        .editor-actions { display: flex; gap: 5px; }
-        
-        /* Estilos da agenda sidebar */
-        .agenda-task { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #ddd; cursor: pointer; }
-        .agenda-task-text { width: calc(100% - 30px); font-size: 0.8rem; }
-        .agenda-task-input { display: none; width: calc(100% - 30px); border: 1px solid var(--accent); padding: 2px; }
-        .agenda-task button { background: none; border: none; cursor: pointer; color: var(--green); }
-
-        /* Edição de Título de Acordo */
-        #agreement-title-text { cursor: pointer; }
-        #agreement-title-input { display: none; font-size: 0.7rem; padding: 5px; border-radius: 4px; border: 1px solid var(--accent); width: 200px; }
-
-
-        @media (max-width: 1024px) {
-            #resizer { display: none; }
-            main { flex-direction: column; overflow-y: auto; }
-            .sidebar { position: fixed; left: -260px; top: var(--header-h); height: 100%; z-index: 3000; width: 260px; transition: transform 0.3s; }
-            .sidebar.show-mobile { transform: translateX(260px); }
-            .work-section { width: 100% !important; height: 50vh; }
-            #mobile-toggle { display: block !important; }
-            .annotations-section { flex-direction: column; }
-            .annotation-box { margin-bottom: 10px; }
-        }
-    </style>
+        /* AJUSTE DE IMPRESSÃO CIRÚRGICO */
+        @media print {
+            @page { size: A4; margin: 0; }
+            body { background: white !important; overflow: visible !important; height: auto !important; }
+            header, .sidebar, .btn-close-pdf, #pdf-split-view, .modal { display: none !important; }
+            .editor-container { padding: 0 !important; margin: 0 !important; background: white !important; overflow: visible !important; width: 100% !important; }
+            .paper { box-shadow: none !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; }
+            .linha-folha { color: black !important; border-bottom: 1px solid #ddd !important; }
+            #identificador-peca { background: white !important; border-bottom: 2px solid black !important; }
+        }
+    </style>
 </head>
 <body>
 
 <header>
-    <div class="header-left">
-        <button id="mobile-toggle" style="background:#34495e; color:white; border:none; padding:8px; border-radius:4px; display:none;" onclick="toggleSidebarMobile()">☰ MENU</button>
-        <button class="dropbtn btn-postit" onclick="focusPanel('postit')">📌 Post-its</button>
-        <!-- Botão alterado para refletir a nova agenda -->
-        <button class="dropbtn btn-dicas" onclick="focusPanel('agenda')">📅 Agenda</button>
-    </div>
-    <div class="nav-group">
-        <span id="business-days-counter"></span>
-    </div>
+    <div style="color:white; font-weight:900;">JOAQUIM <span style="color:var(--gold)">ELITE 2026</span></div>
+    <div style="display:flex; gap:10px;">
+        <button class="btn-side" style="width:40px; background:#64748b;" onclick="document.body.classList.toggle('dark-mode')"><i class="fas fa-moon"></i></button>
+        <button class="btn-side" style="width:40px; background:#ef4444;" onclick="resetarFolha()"><i class="fas fa-trash"></i></button>
+    </div>
 </header>
 
-<button id="btn-reopen" onclick="toggleSidebarPC()">ABRIR MENU »</button>
+<main>
+    <aside class="sidebar">
+        <div id="radar-container"><div id="radar-status">SCANNER</div></div>
+        
+        <button class="btn-side" style="background:var(--gold); color:black;" onclick="abrirModalExames()"><i class="fas fa-bullseye"></i></button>
+        <button class="btn-side" style="background:#0ea5e9;" onclick="salvarManual()"><i class="fas fa-save"></i></button>
+        <button class="btn-side" style="background:#334155; color:var(--gold);" onclick="abrirModalPecas()"><i class="fas fa-scroll"></i></button>
+        <button class="btn-side" style="background:#3b82f6;" onclick="injetarJustica()"><i class="fas fa-gavel"></i></button>
+        
+        <button class="btn-side" style="background:var(--mentoria);" onclick="abrirMentoria()">
+            <i class="fas fa-robot"></i>
+        </button>
+        
+        <hr style="opacity:0.1; margin:5px 0;">
+        
+        <button class="btn-side" style="background:#f97316;" onclick="abrirSplitPdf('p')"><b>P</b></button>
+        <button class="btn-side" style="background:#eab308;" onclick="abrirSplitPdf('g')"><b>G</b></button>
+        <button class="btn-side" style="background:#10b981;" onclick="abrirSplitPdf('v')"><b>V</b></button>
+        
+        <button class="btn-side" style="background:#10b981;" onclick="window.print()"><i class="fas fa-print"></i></button>
+        
+        <button class="btn-side" style="background:#475569;" onclick="irPara(1)"><i class="fas fa-chevron-up"></i></button>
+        <button class="btn-side" style="background:#475569;" onclick="irPara(51)"><i class="fas fa-chevron-down"></i></button>
+    </aside>
 
-<main id="main-container">
-    <aside class="sidebar" id="sidebar-main">
-        <div class="sidebar-content">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
-                <h4 id="agreement-list-title">📂 ACORDOS ATIVOS</h4>
-                <button onclick="toggleSidebarPC()" class="pc-only" style="border:none; background:none; cursor:pointer; color:red; font-size:0.6rem;">Ocultar</button>
-            </div>
-            
-            <button class="btn-action" style="background:var(--green); width:100%; margin-bottom: 5px;" onclick="createNewAgreement()">+ NOVO ACORDO</button>
-            <button class="btn-action" style="background:#6c757d; width:100%; margin-bottom: 15px;" onclick="toggleArchiveView()">VER ARQUIVADOS</button>
+    <section class="editor-container">
+        <div class="paper">
+            <div id="identificador-peca">CARREGANDO...</div>
+            <div id="folha-total"></div>
+        </div>
+    </section>
 
-            <div id="lista-exames"></div> 
-            
-            <h4 style="margin-top:15px">💡 MURAL RÁPIDO (Anotações Antigas)</h4>
-            <div id="mural-fixacao"></div>
-
-            <h4 style="margin-top:15px">📅 AGENDA DIÁRIA (Sidebar)</h4>
-            <div id="manager-agenda-list">
-                <!-- Tarefas aqui -->
-            </div>
-            <div style="display: flex; gap: 5px; margin-top: 8px;">
-                <input type="text" id="new-task-input" placeholder="Nova tarefa..." style="flex: 1; padding: 5px; border-radius: 4px; border: 1px solid #ccc;">
-                <button class="btn-action" style="background: var(--accent);" onclick="addTask()">ADD</button>
-            </div>
-            <!-- Fim Nova Seção da Agenda -->
-
-
-            <h4 style="margin-top:15px">💾 DADOS</h4>
-            <button class="btn-action" style="background:#27ae60; width:100%" onclick="fazerBackup()">EXPORTAR</button>
-            <button class="btn-action" style="background:#2980b9; width:100%; margin-top:5px" onclick="document.getElementById('input-file').click()">IMPORTAR</button>
-            <input type="file" id="input-file" style="display:none" onchange="importarBackup(this)">
-        </div>
-    </aside>
-
-    <section class="work-section" id="editor-area">
-        <div id="aviso-edicao" style="display:none; background:var(--yellow); padding:10px; text-align:center; font-weight:bold;">
-            EDITANDO: <span id="nome-item-editando"></span> 
-            <button class="btn-action" style="background:var(--green); margin-left:10px" onclick="salvarAlteracoes()">SALVAR</button>
-            <button class="btn-action" style="background:#e74c3c; margin-left:5px" onclick="cancelarEdicao()">CANCELAR</button>
-        </div>
-        
-        <div class="editor-header" style="padding:10px; display:flex; justify-content:space-between; align-items:center; background:#eee;">
-            <!-- Área do Título Editável -->
-            <span id="label-exame" style="font-size:0.7rem; font-weight:bold;">
-                <span id="agreement-title-prefix">📍</span>
-                <!-- Texto padrão alterado para "APOIO NO CONEXÃO" -->
-                <span id="agreement-title-text" onclick="editAgreementTitle()">APOIO NO CONEXÃO</span>
-                <input type="text" id="agreement-title-input" 
-                       onblur="saveAgreementTitle(this.value)" 
-                       onkeydown="if(event.key === 'Enter') saveAgreementTitle(this.value)" />
-            </span>
-            <!-- Fim Área do Título Editável -->
-
-            <div class="editor-actions">
-                <button class="btn-action" style="background:var(--accent)" onclick="salvarAlteracoes()">SALVAR</button>
-                <button class="btn-action" style="background:var(--orange)" onclick="arquivarAcordo()">ARQUIVAR ACORDO</button>
-                <button class="btn-action" style="background:var(--green)" onclick="exportarTXT()">TXT</button>
-            </div>
-        </div>
-        
-        <textarea id="area-peca" placeholder="Escreva aqui..."></textarea>
-    </section>
-
-    <div id="resizer"></div>
-
-    <section class="annotations-section" id="right-panel">
-        
-        <div class="annotation-box">
-            <div class="annotation-header">
-                <span>📌 POST-ITS (FOLHA DE CADERNO)</span>
-                <button onclick="addNewNotePrompt('postit')" class="btn-action" style="background: var(--yellow); color: black; padding: 4px 8px;">+ Adicionar</button>
-            </div>
-            <div class="annotation-content" id="content-postit">
-                <!-- Notas tipo Post-it serão renderizadas aqui -->
-            </div>
-        </div>
-
-        <!-- SEÇÃO DA AGENDA DO GERENTE (PAINEL DIREITO) -->
-        <div class="annotation-box">
-            <div class="annotation-header">
-                <span>📅 AGENDA DO GERENTE</span>
-                <button onclick="addNewTaskRightPanel()" class="btn-action" style="background: var(--purple); padding: 4px 8px;">+ Adicionar Tarefa</button>
-            </div>
-            <div class="annotation-content" id="content-agenda">
-                <!-- Tarefas da Agenda serão renderizadas aqui -->
-            </div>
-        </div>
-        <!-- FIM SEÇÃO DA AGENDA -->
-
-    </section>
-
+    <div id="pdf-split-view">
+        <button class="btn-close-pdf" onclick="fecharSplitPdf()"><i class="fas fa-times"></i></button>
+        <iframe id="pdf-frame" style="width:100%; height:100%; border:none;"></iframe>
+    </div>
 </main>
-<script>
-    // --- Variáveis Globais de Controle ---
-    let currentAgreementId = null;
-    let showingArchived = false; 
-    const agreementListElement = document.getElementById('lista-exames');
-    const agreementListTitleElement = document.getElementById('agreement-list-title');
-    const agreementTextArea = document.getElementById('area-peca');
-    const agreementLabel = document.getElementById('label-exame');
-    const agreementTitleText = document.getElementById('agreement-title-text');
-    const agreementTitleInput = document.getElementById('agreement-title-input');
-    const AGREEMENTS_STORAGE_KEY = 'sistemaJoaquimAgreements';
-    // Adicionadas chaves de storage específicas para as novas agendas
-    const TASKS_SIDEBAR_STORAGE_KEY = 'sistemaJoaquimManagerTasks'; 
-    const TASKS_AGENDA_STORAGE_KEY = 'sistemaJoaquimAgendaTasksRightPanel'; 
-    
-    const managerAgendaListElement = document.getElementById('manager-agenda-list');
-    const newTaskInput = document.getElementById('new-task-input');
-    // Novo elemento para a agenda do painel direito
-    const contentAgendaElement = document.getElementById('content-agenda'); 
 
-    // --- Funções Mock ---
-    function toggleSidebarMobile() {}
-    function toggleSidebarPC() {
-        const sidebar = document.getElementById('sidebar-main');
-        const btnReopen = document.getElementById('btn-reopen');
-        sidebar.classList.toggle('collapsed');
-        if (sidebar.classList.contains('collapsed')) {
-            btnReopen.style.display = 'block';
-        } else {
-            btnReopen.style.display = 'none';
-        }
-    }
-    function fazerBackup() { alert("Backup Exportado (Mock)"); }
-    function importarBackup(input) { alert("Backup Importado (Mock)"); }
-    function cancelarEdicao() { alert("Edição Cancelada (Mock)"); }
-    function exportarTXT() { alert("Exportando para TXT (Mock)"); }
-    
-
-
-    window.onload = () => {
-       renderAnnotations('postit'); 
-       renderAgendaTasks(); // Novo renderizador para o painel direito
-       calculateRemainingBusinessDays();
-       renderAgreementList(); 
-       renderTasks(); // Agenda da Sidebar (versão simples)
-    }
-    
-    // ------------------------------------------------------------------
-    // JS: Funcionalidade de Gestão de Acordos e Arquivamento (Mantido)
-    // ------------------------------------------------------------------
-
-    function getAgreements() {
-        return JSON.parse(localStorage.getItem(AGREEMENTS_STORAGE_KEY)) || [];
-    }
-
-    function saveAgreements(agreements) {
-        localStorage.setItem(AGREEMENTS_STORAGE_KEY, JSON.stringify(agreements));
-    }
-
-    function toggleArchiveView() {
-        showingArchived = !showingArchived;
-        if (showingArchived) {
-            document.querySelector('button[onclick="toggleArchiveView()"]').textContent = 'VER ARQUIVADOS';
-            agreementListTitleElement.textContent = '📂 ACORDOS ARQUIVADOS';
-        } else {
-            document.querySelector('button[onclick="toggleArchiveView()"]').textContent = 'VER ARQUIVADOS';
-            agreementListTitleElement.textContent = '📂 ACORDOS ATIVOS';
-        }
-        renderAgreementList();
-    }
-
-    function createNewAgreement() {
-        const title = prompt("Digite o nome do novo acordo:");
-        if (title && title.trim() !== '') {
-            const agreements = getAgreements();
-            const newAgreement = {
-                id: Date.now(),
-                title: title.trim(),
-                content: '',
-                status: 'ativo'
-            };
-            agreements.push(newAgreement);
-            saveAgreements(agreements);
-            if (showingArchived) toggleArchiveView();
-            else renderAgreementList();
-            loadAgreement(newAgreement.id); 
-        }
-    }
-
-    function salvarAlteracoes() {
-        if (currentAgreementId === null) {
-            alert("Selecione um acordo para salvar as alterações.");
-            return;
-        }
-        
-        const agreements = getAgreements();
-        const agreementIndex = agreements.findIndex(a => a.id === currentAgreementId);
-        
-        if (agreementIndex > -1) {
-            agreements[agreementIndex].content = agreementTextArea.value;
-            saveAgreements(agreements);
-            alert("Acordo salvo com sucesso!");
-        }
-    }
-
-    function editAgreementTitle() {
-        if (currentAgreementId === null) return;
-        agreementTitleText.style.display = 'none';
-        agreementTitleInput.style.display = 'inline';
-        agreementTitleInput.value = agreementTitleText.textContent;
-        agreementTitleInput.focus();
-    }
-
-    function saveAgreementTitle(newTitle) {
-        agreementTitleText.style.display = 'inline';
-        agreementTitleInput.style.display = 'none';
-        
-        if (currentAgreementId === null || !newTitle.trim()) return;
-
-        const agreements = getAgreements();
-        const agreementIndex = agreements.findIndex(a => a.id === currentAgreementId);
-
-        if (agreementIndex > -1) {
-            agreements[agreementIndex].title = newTitle.trim();
-            saveAgreements(agreements);
-            loadAgreement(currentAgreementId); 
-        }
-    }
-
-    function arquivarAcordo() {
-        if (currentAgreementId === null) {
-            alert("Selecione um acordo para arquivar.");
-            return;
-        }
-
-        if (!confirm("Tem certeza que deseja arquivar este acordo?")) {
-            return;
-        }
-        
-        const agreements = getAgreements();
-        const agreementIndex = agreements.findIndex(a => a.id === currentAgreementId);
-
-        if (agreementIndex > -1) {
-            agreements[agreementIndex].status = 'arquivado';
-            saveAgreements(agreements);
-            alert("Acordo arquivado com sucesso!");
-            
-            currentAgreementId = null;
-            agreementTextArea.value = '';
-            // Texto padrão atualizado
-            agreementTitleText.textContent = 'APOIO NO CONEXÃO'; 
-            renderAgreementList();
-        }
-    }
-
-    function restaurarAcordo(id) {
-        const agreements = getAgreements();
-        const agreementIndex = agreements.findIndex(a => a.id === id);
-
-        if (agreementIndex > -1) {
-            agreements[agreementIndex].status = 'ativo';
-            saveAgreements(agreements);
-            alert("Acordo restaurado para a lista de ativos.");
-            renderAgreementList(); 
-        }
-    }
-
-    function renderAgreementList() {
-        agreementListElement.innerHTML = '';
-        const agreements = getAgreements();
-        
-        const filteredAgreements = agreements.filter(a => showingArchived ? a.status === 'arquivado' : a.status === 'ativo');
-
-        if (filteredAgreements.length === 0) {
-            agreementListElement.innerHTML = `<p style="font-size: 0.7rem; padding: 10px;">Nenhum acordo ${showingArchived ? 'arquivado' : 'ativo'} encontrado.</p>`;
-            return;
-        }
-
-        filteredAgreements.forEach(agreement => {
-            const button = document.createElement('button');
-            button.className = `exame-btn ${showingArchived ? 'archived' : ''}`;
-            button.textContent = agreement.title;
-            button.onclick = () => loadAgreement(agreement.id); 
-            
-            if (showingArchived) {
-                const restoreButton = document.createElement('button');
-                restoreButton.textContent = 'Restaurar';
-                restoreButton.className = 'btn-action';
-                restoreButton.style.background = 'var(--green)';
-                restoreButton.style.marginLeft = '10px';
-                restoreButton.onclick = (e) => {
-                    e.stopPropagation(); 
-                    restaurarAcordo(agreement.id);
-                };
-                button.appendChild(restoreButton);
-            }
-            
-            agreementListElement.appendChild(button);
-        });
-    }
-
-    function loadAgreement(id) {
-        const agreements = getAgreements();
-        const agreement = agreements.find(a => a.id === id);
-
-        if (agreement) {
-            currentAgreementId = id;
-            agreementTextArea.value = agreement.content;
-            agreementTitleText.textContent = agreement.title;
-            document.querySelectorAll('.exame-btn').forEach(btn => btn.classList.remove('active'));
-            const currentButton = document.querySelector(`#lista-exames .exame-btn[onclick*="loadAgreement(${id})"]`);
-            if (currentButton) {
-                currentButton.classList.add('active');
-            }
-        }
-    }
-
-    // ------------------------------------------------------------------
-    // JS: Funcionalidade Agenda Diária do Gerente (Sidebar - Versão Simples)
-    // ------------------------------------------------------------------
-    
-    function getTasks() {
-        const todayKey = `sistemaJoaquimTasks_${new Date().toDateString()}`; 
-        return JSON.parse(localStorage.getItem(todayKey)) || [];
-    }
-
-    function saveTasks(tasks) {
-        const todayKey = `sistemaJoaquimTasks_${new Date().toDateString()}`;
-        localStorage.setItem(todayKey, JSON.stringify(tasks));
-    }
-
-    function renderTasks() {
-        managerAgendaListElement.innerHTML = '';
-        const tasks = getTasks();
-
-        tasks.forEach(task => {
-            const taskDiv = document.createElement('div');
-            taskDiv.className = 'agenda-task';
-            
-            taskDiv.innerHTML = `
-                <span id="task-text-${task.id}" class="agenda-task-text" onclick="editTask(${task.id})">${task.text}</span>
-                <input type="text" id="task-input-${task.id}" class="agenda-task-input" 
-                       value="${task.text}" 
-                       onblur="updateTaskText(${task.id}, this.value)" 
-                       onkeydown="if(event.key === 'Enter') this.blur();" />
-                <button onclick="event.stopPropagation(); deleteTask(${task.id})" title="Marcar como concluída/Excluir">✔️</button>
-            `;
-            managerAgendaListElement.appendChild(taskDiv);
-        });
-    }
-
-    function addTask() {
-        const text = newTaskInput.value.trim();
-        if (text === '') return;
-
-        const tasks = getTasks();
-        const newTask = {
-            id: Date.now(),
-            text: text
-        };
-        tasks.push(newTask);
-        saveTasks(tasks);
-        newTaskInput.value = '';
-        renderTasks();
-    }
-
-    function editTask(id) {
-        document.getElementById(`task-text-${id}`).style.display = 'none';
-        const input = document.getElementById(`task-input-${id}`);
-        input.style.display = 'inline';
-        input.focus();
-    }
-
-    function updateTaskText(id, newText) {
-        const tasks = getTasks();
-        const taskIndex = tasks.findIndex(task => task.id === id);
-        if (taskIndex > -1) {
-            tasks[taskIndex].text = newText;
-            saveTasks(tasks);
-        }
-        document.getElementById(`task-text-${id}`).textContent = newText;
-        document.getElementById(`task-text-${id}`).style.display = 'inline';
-        document.getElementById(`task-input-${id}`).style.display = 'none';
-    }
-
-    function deleteTask(id) {
-        let tasks = getTasks();
-        tasks = tasks.filter(task => task.id !== id);
-        saveTasks(tasks);
-        renderTasks();
-    }
-
-
-    // ------------------------------------------------------------------
-    // JS: Funcionalidade Agenda do Gerente (Painel Direito - Versão Avançada)
-    // ------------------------------------------------------------------
-
-    function getAgendaTasks() {
-        return JSON.parse(localStorage.getItem(TASKS_AGENDA_STORAGE_KEY)) || [];
-    }
-
-    function saveAgendaTasks(tasks) {
-        localStorage.setItem(TASKS_AGENDA_STORAGE_KEY, JSON.stringify(tasks));
-    }
-
-    function renderAgendaTasks() {
-        contentAgendaElement.innerHTML = '';
-        const tasks = getAgendaTasks();
-
-        tasks.forEach(task => {
-            const item = document.createElement('div');
-            item.className = `note-item type-agenda`; 
-            item.id = `agenda-task-${task.id}`;
-           
-            item.innerHTML = `
-                <div id="view-${task.id}">
-                    <p><strong>Tarefa:</strong> ${task.text}</p>
-                    <small>Criado em: ${task.date}</small><br>
-                    <button class="btn-action" style="background: var(--accent); margin-top: 5px;" onclick="editAgendaTask(${task.id})">✏️ Editar</button>
-                    <button class="btn-action" style="background: #e74c3c; margin-top: 5px;" onclick="deleteAgendaTask(${task.id})">✖️ Excluir</button>
-                </div>
-                <div id="edit-${task.id}" style="display:none;">
-                    <textarea id="textarea-agenda-${task.id}" class="edit-mode-textarea">${task.text}</textarea>
-                    <button class="btn-action" style="background: var(--green);" onclick="saveEditedAgendaTask(${task.id})">Salvar</button>
-                    <button class="btn-action" style="background: #e74c3c;" onclick="cancelEditAgendaTask(${task.id})">Cancelar</button>
-                </div>
-            `;
-            contentAgendaElement.appendChild(item);
-        });
-    }
-
-    function addNewTaskRightPanel() {
-        const text = prompt("Digite a nova tarefa para a Agenda:");
-        if (text && text.trim() !== '') {
-            const tasks = getAgendaTasks();
-            const newTask = {
-                id: Date.now(),
-                text: text,
-                date: new Date().toLocaleString('pt-BR')
-            };
-            tasks.push(newTask);
-            saveAgendaTasks(tasks);
-            renderAgendaTasks();
-        }
-    }
-
-    function editAgendaTask(id) {
-        document.getElementById(`view-${id}`).style.display = 'none';
-        document.getElementById(`edit-${id}`).style.display = 'block';
-        document.getElementById(`textarea-agenda-${id}`).focus();
-    }
-
-    function saveEditedAgendaTask(id) {
-        const newText = document.getElementById(`textarea-agenda-${id}`).value;
-        if (newText.trim() === '') return;
-
-        const tasks = getAgendaTasks();
-        const taskIndex = tasks.findIndex(task => task.id === id);
-
-        if (taskIndex > -1) {
-            tasks[taskIndex].text = newText.trim();
-            saveAgendaTasks(tasks);
-            renderAgendaTasks();
-        }
-    }
-
-    function cancelEditAgendaTask(id) {
-        document.getElementById(`view-${id}`).style.display = 'block';
-        document.getElementById(`edit-${id}`).style.display = 'none';
-        const tasks = getAgendaTasks();
-        const originalTask = tasks.find(task => task.id === id);
-        if (originalTask) {
-            document.getElementById(`textarea-agenda-${id}`).value = originalTask.text;
-        }
-    }
-
-    function deleteAgendaTask(id) {
-        if (!confirm("Tem certeza que deseja excluir esta tarefa?")) return;
-        let tasks = getAgendaTasks();
-        tasks = tasks.filter(task => task.id !== id);
-        saveAgendaTasks(tasks);
-        renderAgendaTasks();
-    }
-    
-
-    // ------------------------------------------------------------------
-    // Outras Funcionalidades (Contador de Dias Úteis e Post-its)
-    // ------------------------------------------------------------------
-    
-    function calculateRemainingBusinessDays() {
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = today.getMonth();
-        const lastDayOfMonth = new Date(year, month + 1, 0); 
-        
-        let businessDaysRemaining = 0;
-        let currentDate = new Date(today);
-
-        while (currentDate <= lastDayOfMonth) {
-            const dayOfWeek = currentDate.getDay();
-            if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-                businessDaysRemaining++;
-            }
-            currentDate.setDate(currentDate.getDate() + 1);
-        }
-
-        if (today.getDay() !== 0 && today.getDay() !== 6) {
-            businessDaysRemaining -= 1;
-        }
-
-        const counterElement = document.getElementById('business-days-counter');
-        if (counterElement) {
-            counterElement.textContent = `Faltam ${businessDaysRemaining} dias úteis no mês`;
-        }
-    }
-
-    // Funções de Post-it (Agora apenas para o tipo 'postit')
-
-    function addNewNotePrompt(type) {
-        if (type !== 'postit') return;
-        const text = prompt(`Digite sua nova anotação (${type}):`);
-        if (text && text.trim() !== '') {
-            saveAnnotation(type, text);
-        }
-    }
-
-    function saveAnnotation(type, text, id = null) {
-        if (type !== 'postit') return;
-
-        const STORAGE_KEY = `sistemaJoaquimNotes_${type}`;
-        let annotations = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-        
-        if (id) {
-            const index = annotations.findIndex(note => note.id === id);
-            if (index > -1) {
-                annotations[index].text = text;
-            }
-        } else {
-            const newAnnotation = {
-                id: Date.now(),
-                text: text,
-                date: new Date().toLocaleString('pt-BR')
-            };
-            annotations.push(newAnnotation);
-        }
-
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(annotations));
-        renderAnnotations(type);
-    }
-
-    function renderAnnotations(type) {
-        if (type !== 'postit') return;
-
-        const STORAGE_KEY = `sistemaJoaquimNotes_${type}`;
-        const annotations = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-        const contentArea = document.getElementById('content-postit');
-        contentArea.innerHTML = '';
-
-        annotations.forEach(annotation => {
-            const item = document.createElement('div');
-            item.className = `note-item type-${type}`; 
-            item.id = `note-${type}-${annotation.id}`;
-            item.setAttribute('onclick', `editNote('${type}', ${annotation.id})`);
-           
-            item.innerHTML = `
-                <div id="view-${annotation.id}">
-                    <p>${annotation.text}</p>
-                    <small>Criado em: ${annotation.date}</small>
-                    <button class="note-delete" onclick="event.stopPropagation(); deleteAnnotation('${type}', ${annotation.id})">✖️</button>
-                </div>
-                <div id="edit-${annotation.id}" style="display:none;">
-                    <textarea id="textarea-${annotation.id}" class="edit-mode-textarea">${annotation.text}</textarea>
-                    <button class="btn-action" style="background: var(--green);" onclick="event.stopPropagation(); saveEditedNote('${type}', ${annotation.id})">Salvar</button>
-                    <button class="btn-action" style="background: #e74c3c;" onclick="event.stopPropagation(); cancelEdit('${type}', ${annotation.id})">Cancelar</button>
-                </div>
-            `;
-            contentArea.appendChild(item);
-        });
-    }
-
-    function deleteAnnotation(type, id) {
-        if (type !== 'postit') return;
-
-        const STORAGE_KEY = `sistemaJoaquimNotes_${type}`;
-        let annotations = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-        annotations = annotations.filter(annotation => annotation.id !== id);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(annotations));
-        renderAnnotations(type); 
-    }
-
-    function focusPanel(type) {
-        // Atualizado para incluir o novo ID 'content-agenda'
-        const panelId = type === 'postit' ? 'content-postit' : 'content-agenda';
-        const panel = document.getElementById(panelId);
-        if (panel) {
-            panel.scrollIntoView({ behavior: 'smooth' });
-        }
-    }
-
-    function editNote(type, id) {
-        if (type !== 'postit') return;
-
-        document.getElementById(`view-${id}`).style.display = 'none';
-        document.getElementById(`edit-${id}`).style.display = 'block';
-        document.getElementById(`textarea-${id}`).focus();
-    }
-
-    function saveEditedNote(type, id) {
-        if (type !== 'postit') return;
-        const newText = document.getElementById(`textarea-${id}`).value;
-        saveAnnotation(type, newText, id);
-    }
-
-    function cancelEdit(type, id) {
-        if (type !== 'postit') return;
-
-        document.getElementById(`view-${id}`).style.display = 'block';
-        document.getElementById(`edit-${id}`).style.display = 'none';
-        const annotations = JSON.parse(localStorage.getItem(`sistemaJoaquimNotes_${type}`)) || [];
-        const originalNote = annotations.find(note => note.id === id);
-        if (originalNote) {
-            document.getElementById(`textarea-${id}`).value = originalNote.text;
-        }
-    }
+<div class="modal" id="universal-modal">
+    <div class="modal-body">
+        <div id="modal-content"></div>
+        <button onclick="fecharModal()" style="width:100%; margin-top:15px; padding:12px; background:black; color:white; border-radius:10px; font-weight:bold; cursor:pointer;">VOLTAR AO COCKPIT</button>
+    </div>
+</div>
+
+<script type="module">
+    import { db } from './firebase-config.js';
+    import { ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { BANCO_ESPELHOS } from './banco-espelhos.js';
+    import { pecas } from './estruturas.js';
+
+    let activeEx = localStorage.getItem('activeEx') || "44";
+    let ultimaLinhaFocada = 1;
+    let mentoriaJanelaRef = null;
+    const LIMITE_LINHA = 85;
+
+    const escaneamentoElite = () => {
+        const sidebarStatus = document.getElementById('radar-status');
+        const boxSidebar = document.getElementById('radar-container');
+        const topoFolha = document.getElementById('identificador-peca');
+        const textoBanco = (BANCO_ESPELHOS[activeEx] || "").toUpperCase();
+
+        const DICIONARIO = [
+            { id: "AGRAVO DE PETIÇÃO", display: "AGRAVO DE PETIÇÃO", cor: "#f87171" },
+            { id: "RECURSO ORDINÁRIO", display: "RECURSO ORDINÁRIO", cor: "#3b82f6" },
+            { id: "CONTESTAÇÃO", display: "CONTESTAÇÃO TRABALHISTA", cor: "#22c55e" },
+            { id: "RECLAMAÇÃO", display: "RECLAMATÓRIA TRABALHISTA", cor: "#a855f7" }
+        ];
+
+        let encontrado = DICIONARIO.find(p => textoBanco.includes(p.id));
+
+        if (encontrado) {
+            sidebarStatus.innerHTML = `<span style="color:${encontrado.cor}">RADAR</span><br>${encontrado.id}`;
+            boxSidebar.style.borderColor = encontrado.cor;
+            boxSidebar.classList.remove('radar-blink');
+            topoFolha.innerText = encontrado.display;
+            topoFolha.style.color = encontrado.cor;
+            topoFolha.style.borderBottomColor = encontrado.cor;
+        } else {
+            sidebarStatus.innerHTML = `<span>RADAR</span><br><span class="radar-blink">BUSCANDO...</span>`;
+            boxSidebar.style.borderColor = "var(--gold)";
+            topoFolha.innerText = "CADERNO DE RESPOSTAS";
+            topoFolha.style.color = "#64748b";
+            topoFolha.style.borderBottomColor = "var(--line-color)";
+        }
+    };
+
+    const montarFolha = () => {
+        const container = document.getElementById('folha-total');
+        container.innerHTML = "";
+        for(let i=1; i<=180; i++) {
+            if(i === 1 || i === 51) {
+                const h = document.createElement('div');
+                h.style.cssText = "background:#1e293b; color:#fbbf24; padding:8px; text-align:center; font-size:0.7rem; font-weight:bold;";
+                h.innerText = i === 1 ? 'CADERNO DE RESPOSTAS - PEÇA' : 'CADERNO DE RESPOSTAS - QUESTÕES';
+                container.appendChild(h);
+            }
+            const row = document.createElement('div');
+            row.className = 'linha-wrapper';
+            const input = document.createElement('input');
+            input.className = 'linha-folha';
+            input.id = `L${i}`;
+            input.setAttribute('spellcheck', 'false');
+            input.setAttribute('maxlength', LIMITE_LINHA);
+
+            input.oninput = () => { if (input.value.length >= LIMITE_LINHA) document.getElementById(`L${i + 1}`)?.focus(); };
+            input.onkeydown = (e) => { 
+                if (e.key === "Enter") { e.preventDefault(); document.getElementById(`L${i + 1}`)?.focus(); } 
+                if (e.key === "Backspace" && input.value.length === 0) document.getElementById(`L${i - 1}`)?.focus();
+            };
+            input.onfocus = () => { ultimaLinhaFocada = i; };
+            row.innerHTML = `<div class="linha-num">${i}</div>`;
+            row.appendChild(input);
+            container.appendChild(row);
+        }
+        carregarDados();
+    };
+
+    const carregarDados = () => {
+        onValue(ref(db, 'estudos/' + activeEx), (snap) => {
+            const data = snap.val();
+            if (data && data.linhas) {
+                data.linhas.forEach((txt, idx) => {
+                    const el = document.getElementById(`L${idx + 1}`);
+                    if (el) el.value = txt;
+                });
+            }
+            escaneamentoElite();
+        }, { onlyOnce: true });
+    };
+
+    window.abrirMentoria = () => {
+        const width = 500, height = window.screen.height, left = window.screen.width - width;
+        const config = `width=${width},height=${height},top=0,left=${left},resizable=yes,scrollbars=yes`;
+        if (mentoriaJanelaRef === null || mentoriaJanelaRef.closed) mentoriaJanelaRef = window.open('mentoria.html', 'MentoriaElite', config);
+        else mentoriaJanelaRef.focus();
+    };
+
+    window.abrirModalExames = () => {
+        const content = document.getElementById('modal-content');
+        content.innerHTML = `<h2 style="text-align:center; margin-bottom:15px;">EXAMES</h2>`;
+        const grid = document.createElement('div'); grid.style.display="grid"; grid.style.gridTemplateColumns="1fr 1fr"; grid.style.gap="10px";
+        for(let i=44; i>=35; i--) {
+            const b = document.createElement('div'); b.className='opt-btn'; b.innerText=`Exame ${i}`;
+            b.onclick = () => { activeEx = i.toString(); localStorage.setItem('activeEx', activeEx); montarFolha(); escaneamentoElite(); fecharModal(); };
+            grid.appendChild(b);
+        }
+        content.appendChild(grid);
+        document.getElementById('universal-modal').style.display='flex';
+    };
+
+    window.salvarManual = () => {
+        const dados = Array.from(document.querySelectorAll('.linha-folha')).map(i => i.value);
+        set(ref(db, 'estudos/' + activeEx), { linhas: dados, ts: Date.now() }).then(() => alert("☁️ SINCRONIZADO!"));
+    };
+
+    window.abrirModalPecas = () => {
+        const content = document.getElementById('modal-content');
+        content.innerHTML = `<h2 style="text-align:center; margin-bottom:15px;">ESTRUTURAS</h2>`;
+        Object.keys(pecas).forEach(k => {
+            const b = document.createElement('div'); b.className='opt-btn'; b.innerText=k;
+            b.onclick = () => {
+                pecas[k].split('\n').forEach((t, i) => {
+                    const el = document.getElementById(`L${ultimaLinhaFocada + i}`);
+                    if(el) el.value = t.substring(0, LIMITE_LINHA);
+                });
+                fecharModal(); salvarManual();
+            };
+            content.appendChild(b);
+        });
+        document.getElementById('universal-modal').style.display='flex';
+    };
+
+    window.injetarJustica = () => {
+        const dna = BANCO_ESPELHOS[activeEx] || "";
+        const frases = dna.replace(/<[^>]*>/g, '').split('\n').filter(f => f.trim().length > 5);
+        if(frases.length > 0) {
+            frases.forEach((f, i) => {
+                const el = document.getElementById(`L${ultimaLinhaFocada + i}`);
+                if(el) el.value = "➤ " + f.trim().substring(0, LIMITE_LINHA - 2);
+            });
+            salvarManual();
+        }
+    };
+
+    window.abrirSplitPdf = (t) => {
+        document.getElementById('pdf-frame').src = t === 'v' ? 'vade.pdf' : `ro${activeEx}${t === 'g' ? '-gabarito' : ''}.pdf`;
+        document.getElementById('pdf-split-view').classList.add('active');
+    };
+
+    window.fecharSplitPdf = () => { document.getElementById('pdf-split-view').classList.remove('active'); document.getElementById('pdf-frame').src = ""; };
+    window.fecharModal = () => document.getElementById('universal-modal').style.display='none';
+    window.irPara = (n) => document.getElementById(`L${n}`)?.scrollIntoView({behavior:'smooth', block:'center'});
+    window.resetarFolha = () => { if(confirm("Limpar folha?")) document.querySelectorAll('.linha-folha').forEach(i => i.value=""); };
+
+    window.onload = () => montarFolha();
+    Object.assign(window, { abrirModalExames, abrirModalPecas, fecharModal, fecharSplitPdf, abrirSplitPdf, salvarManual, injetarJustica, irPara, resetarFolha, abrirMentoria });
 </script>
 </body>
 </html>
+gemini esse é o primeiro codigo so receba
